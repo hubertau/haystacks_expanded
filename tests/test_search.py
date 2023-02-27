@@ -12,6 +12,6 @@ def test_one_download(tmp_path):
     files = glob.glob(os.path.join('./../data/01_raw', '*.json'))
     files = sorted(files, key=os.path.getmtime, reverse=True)
     file = files[0]
-    result = subprocess.run(['hay', 'download', file, '--savepath', tmp_path,   '--max-download', '2'])
-    downloaded_files = glob.glob(tmp_path, '*.mp4')
+    result = subprocess.run(['hay', 'download', file, '--savepath', tmp_path,   '--max_download', '2'])
+    downloaded_files = glob.glob(os.path.join(tmp_path, 'videos/*.mp4'))
     assert len(downloaded_files) == 2
