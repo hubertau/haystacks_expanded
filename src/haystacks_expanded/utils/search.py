@@ -58,6 +58,8 @@ def download(file, savepath, overwrite = False, max_download = None):
     if not os.path.exists('videos'):
         os.makedirs('videos')
 
+    if max_download:
+        max_download = int(max_download)
 
     all_ids = []
     with open(file, 'r') as f:
@@ -77,14 +79,12 @@ def download(file, savepath, overwrite = False, max_download = None):
         'logger': logger
     }
     skipped = 0
-    # stream = StreamToLogger()
-    # with contextlib.redirect_stdout(stream):
-        # with contextlib.redirect_stderr(stream):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for counter, video in enumerate(all_ids):
             if video.id in existing_videos:
                 logger.info(f'{video.id} already downloaded. Continuing...')
                 skipped += 1
+            logger.info(f"{counter}, {skipped}, {max_download}")
             if max_download is not None and counter-skipped >= max_download:
                 logger.info(f'Max download of {max_download} reached. Terminating...')
                 break
@@ -92,3 +92,4 @@ def download(file, savepath, overwrite = False, max_download = None):
                 ydl.download(video.as_url())
             except:
                 logger.error('Something went wrong')
+                skipped += 1
