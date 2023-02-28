@@ -5,4 +5,5 @@ src/haystacks_expanded/archive/*
 tests/__pycache__/*
 src/haystacks_expanded/__pycache__/*
 src/haystacks_expanded/utils/__pycache__/*
-*.DS_Storehaystacks_expanded/test_video.mp4
+*.DS_Store
+haystacks_expanded/test_video.mp4
