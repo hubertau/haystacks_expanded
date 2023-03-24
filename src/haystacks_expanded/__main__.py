@@ -2,10 +2,11 @@ import click
 import os
 import json
 from loguru import logger
+from pathlib import Path
 import sys
 import configparser
-import haystacks_expanded.utils
 
+import haystacks_expanded.utils
 
 @click.group()
 @click.pass_context
@@ -97,6 +98,20 @@ def download(ctx, query_result, savepath, overwrite, max_download):
         max_download=max_download
     )
 
+@cli.command()
+@click.pass_context
+@click.option('--metadata', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')
+@click.option('--video_dir', default=None, help='Directory where video files are saved')
+@click.option('--video_feat_dir', default=None, help='Where to save features')
+def extract(ctx, metadata, video_dir, video_feat_dir):
+
+    extractor = haystacks_expanded.utils.HaystacksFeatureExtractor(
+        f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
+        f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'videos' if video_dir is None else video_dir}",
+        f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'video_features' if video_feat_dir is None else video_feat_dir}",
+    )
+
+    extractor.extract_features()
 
 if __name__ == '__main__':
     cli()

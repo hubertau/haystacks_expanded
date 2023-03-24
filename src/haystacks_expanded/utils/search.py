@@ -6,12 +6,23 @@ import glob
 from loguru import logger
 import yt_dlp
 from dataclasses import dataclass, field
+from pathlib import PosixPath
 
 
 @dataclass
 class video_info:
     id: str
-    username: field(default_factory=str, compare=False)
+    username: str = field(default_factory=str, compare=False)
+    downloaded: bool = field(default_factory=bool, compare=False)
+    video_location: PosixPath = field(default_factory=PosixPath, compare=False)
+    comment_count: int = field(default_factory=int, compare=False)
+    digg_count: int = field(default_factory=int, compare=False)
+    play_count: int = field(default_factory=int, compare=False)
+    share_count: int = field(default_factory=int, compare=False)
+    whatsapp_share_count: int = field(default_factory=int, compare=False)
+    description: str = field(default_factory=str, compare=False)
+    ocr_text: str = field(default_factory=str, compare=False)
+    whisper_text: str = field(default_factory=str, compare=False)
 
     def as_url(self):
         return f'https://www.tiktok.com/@{self.username}/video/{self.id}'
