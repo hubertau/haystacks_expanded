@@ -106,7 +106,7 @@ class HaystacksFeatureExtractor:
             ocr_temp = video_ocr.perform_video_ocr(
                 str(video.video_location)
             )
-            video.ocr_text = '. '.join([corrector(frame.text.strip().replace('\n', ''), max_length=2048)[0]['generated_text'] for frame in ocr_temp])
+            video.ocr_text = '. '.join([corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp])
             video.whisper_text = whisper_model.transcribe(str(video.video_location), fp16=False).get('text', '').strip()
 
             to_combine = [i for i in [video.description, video.ocr_text, video.whisper_text] if len(i)>0]
