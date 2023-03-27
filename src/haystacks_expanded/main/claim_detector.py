@@ -13,21 +13,25 @@ class ClaimDetector:
         self.pipeline = pipeline
 
     @classmethod
-    def from_transformers(cls, name = "sschellhammer/SciTweets_SciBert"):
+    def from_transformers(cls, model = "Nithiwat/mdeberta-v3-base_claimbuster"):
+        #Nithiwat/mdeberta-v3-base_claimbuster
+        #sschellhammer/SciTweets_SciBert
 
-        pipe = pipeline(task='text-classification', model = name, top_k=None)
+        pipe = pipeline(task='text-classification', model = model, top_k=None)
 
         return ClaimDetector(pipe)
 
     def __call__(self, *args, **kwargs):
         return self.pipeline(*args, **kwargs)
 
+    def detect(self, video_feature_directory):
+        pass
 
 if __name__ == "__main__":
 
     test_sentences = [
         'I like cheese',
-        'Covid-19 is a virus and not a baterial disease'
+        'Covid-19 is a virus and not a bacterial disease'
     ]
 
     test_pipeline = ClaimDetector.from_transformers()
