@@ -5,8 +5,9 @@ from loguru import logger
 from pathlib import Path
 import sys
 import configparser
+import pandas as pd
 
-import haystacks_expanded.utils
+from . import utils, main
 
 @click.group()
 @click.pass_context
@@ -75,7 +76,7 @@ def search(ctx, query_name, savepath, period):
         queries = json.load(f)
     assert query_name in queries, ValueError(f'Query name {query_name} not in queries file')
 
-    haystacks_expanded.utils.query(
+    utils.query(
         query_name,
         queries[query_name],
         savepath = f"{ctx.obj['CONFIG']['locations']['raw_data'] if savepath is None else savepath}",
@@ -91,27 +92,78 @@ def search(ctx, query_name, savepath, period):
 @click.option('--max_download', default=None, help='download up to this number of vidoes')
 def download(ctx, query_result, savepath, overwrite, max_download):
 
-    haystacks_expanded.utils.download(
+    utils.download(
         query_result,
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if savepath is None else savepath}",
         overwrite = overwrite,
         max_download=max_download
     )
 
+
+def common_options(function):
+    function = click.option('--metadata', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')(function)
+    function = click.option('--video_dir', default=None, help='Directory where video files are saved')(function)
+    function = click.option('--video_feat_dir', default=None, help='Where to save features')(function)
+    function = click.option('--output', '-o', default=None, help='Filename of output file')(function)
+    function = click.option('--overwrite', type=bool, default=False, is_flag=True)(function)
+    return function
+
+
 @cli.command()
 @click.pass_context
-@click.option('--metadata', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')
-@click.option('--video_dir', default=None, help='Directory where video files are saved')
-@click.option('--video_feat_dir', default=None, help='Where to save features')
-def extract(ctx, metadata, video_dir, video_feat_dir):
+@common_options
+def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite):
 
-    extractor = haystacks_expanded.utils.HaystacksFeatureExtractor(
+    extractor = utils.HaystacksFeatureExtractor(
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'videos' if video_dir is None else video_dir}",
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'video_features' if video_feat_dir is None else video_feat_dir}",
     )
 
-    extractor.extract_features()
+    extractor.extract_features(overwrite=overwrite)
+
+    if output is not None:
+        extractor.save_to(output, overwrite)
+        logger.info(f'Consolidated csv saved to {output}')
+
+@cli.command()
+@click.pass_context
+@common_options
+@click.option('--model', '-m',
+              default='Nithiwat/mdeberta-v3-base_claimbuster',
+              help='Name of HuggingFace model to load for claim detection.'
+              )
+@click.option('--config', '-c',
+              default='concatenated',
+              help='Configuration for which features to use in detection.',
+              type=click.Choice(['concatenated']))
+def detect(ctx, metadata, video_dir, video_feat_dir, model, output, config, overwrite):
+
+    if video_dir is not None and video_feat_dir is not None:
+        logger.warning(f'This function is not intended to be run with BOTH video dir and video feature dir provided. Will now carry out video feature extraction and detection together.')
+
+        extract(ctx, metadata, video_dir, video_feat_dir)
+
+    detector = main.ClaimDetector.from_transformers(model=model)
+
+    inference = None
+    if output is not None:
+        if os.path.isfile(output) and Path(output).suffix == '.csv':
+            inference = pd.from_csv(output)
+            logger.info(f'Loaded in existing dataset from {output}')
+        elif os.path.isdir(output):
+            savename = Path(output) / 'claim_detection.csv'
+        elif Path(output).parent.is_dir():
+            savename = output
+        else:
+            raise ValueError(f'{output} is neither a valid existing dataset file nor a valid directory nor a valid path for a new save object.')
+    else:
+        savename = Path(video_feat_dir) / 'claim_detection.csv'
+
+    detector.detect()
+
+
+
 
 if __name__ == '__main__':
     cli()
