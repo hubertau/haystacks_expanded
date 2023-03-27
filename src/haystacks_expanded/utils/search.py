@@ -23,6 +23,7 @@ class video_info:
     description: str = field(default_factory=str, compare=False)
     ocr_text: str = field(default_factory=str, compare=False)
     whisper_text: str = field(default_factory=str, compare=False)
+    concatenated: str = field(default_factory=str, compare=False)
 
     def as_url(self):
         return f'https://www.tiktok.com/@{self.username}/video/{self.id}'
