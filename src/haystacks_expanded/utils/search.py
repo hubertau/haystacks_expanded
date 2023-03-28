@@ -57,12 +57,71 @@ def query(query_name, query, savepath, token = None, period = 1, platform='TikTo
     else:
         logger.info('Collection OK. Status code 200')
 
-
     savename = os.path.join(savepath, f'{query_name}_{datetime.datetime.today().strftime("%Y-%m-%d")}.json')
 
     with open(savename, 'w') as f:
         json.dump(res.json(), f)
     logger.info(f'Saved to {savename}')
+    logger.info(f'Number of videos collected: {len(res.json()["data"])}')
+
+def comment_retrieval(query_json, outfile, token=None, platform='TikTok')->None:
+    '''Collect comments on posts from a query result file.'''
+
+    assert token is not None, 'API token cannot be none'
+    assert Path(outfile).parent.is_dir()
+
+    platform = platform.lower()
+    if platform not in ['tiktok', 'instagram']:
+        raise ValueError(f"platform argument must be either tiktok or instagram. Received {platform} instead")
+
+    root = "https://www.ensembledata.com/apis"
+    if platform == 'tiktok':
+        endpoint = "/tt/post/comments"
+    # elif platform == 'instagram':
+        # endpoint = "/tt/"
+
+    # extract ids from query json
+    with open(query_json, 'r') as f:
+        data = json.load(f)['data']
+
+    ids = [item['aweme_info']['aweme_id'] for item in data]
+
+    final_result = {}
+    for index, id in enumerate(ids):
+        logger.info(f'Processing {index+1} of {len(ids)} ({100*(index+1)/len(ids):.2f}%): {id}')
+        params = {
+            'aweme_id': id,
+            'cursor': 0,
+            'token': token
+        }
+
+        res = requests.get(root+endpoint, params=params)
+
+        if res.status_code != 200:
+            raise RuntimeWarning(f'Status code was not 200. Received {res.status_code}')
+
+        final_result[id] = {
+            'comments': res.json()['data']['comments'],
+            'total'   : res.json()['data']['total']
+        }
+        nextCursor = res.json().get('data').get('nextCursor')
+        while nextCursor:
+            params = {
+                'aweme_id': id,
+                'cursor': nextCursor,
+                'token': token
+            }
+            res = requests.get(root + endpoint, params=params)
+            if res.status_code != 200:
+                raise RuntimeWarning(f'Status code was not 200. Received {res.status_code}')
+            final_result[id]['comments'].extend(res.json()['data']['comments'])
+            final_result[id]['total'] = final_result[id]['total'] + res.json()['data']['total']
+            nextCursor = res.json().get('data').get('nextCursor')
+
+    # write results
+    with open(outfile, 'w') as f:
+        json.dump(final_result, f)
+    logger.info(f'Saved to {outfile}')
 
 def download(file, savepath, overwrite = False, max_download = None):
 
