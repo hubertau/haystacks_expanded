@@ -81,6 +81,7 @@ def cli(ctx, debug, gpu, config_file, log_file):
 @click.option('--savepath', default=None, help = 'Savepath for returned query. Will default to path set in config file')
 @click.option('--period', default=1, help='Number of days back to search')
 def search(ctx, query_name, savepath, period):
+    """Search TikTok with a prepared query"""
 
     with open(ctx.obj['CONFIG']['locations']['queries_json'], 'r') as f:
         queries = json.load(f)
@@ -101,6 +102,7 @@ def search(ctx, query_name, savepath, period):
 @click.option('--overwrite', default=False, help='overwrite already downloaded videos')
 @click.option('--max_download', default=None, help='download up to this number of vidoes')
 def download(ctx, query_result, savepath, overwrite, max_download):
+    '''Download videos from a query result'''
 
     utils.download(
         query_result,
@@ -124,6 +126,7 @@ def common_options(function):
 @common_options
 @click.option('--reextract', '-r', is_flag=True, default=False, help='whether to reextract features.')
 def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextract):
+    '''Extract features from downloaded videos'''
 
     extractor = utils.HaystacksFeatureExtractor(
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
@@ -143,44 +146,59 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextra
 
 @cli.command()
 @click.pass_context
-@click.argument('features_file')
-@common_options
-@click.option('--model', '-m',
+@click.option('--metadata', '-me', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')
+@click.option('--features_file', '-f', help='features csv to read in. Can be omitted if metadata option is provided.')
+@click.option('--model', '-m', 
               default='Nithiwat/mdeberta-v3-base_claimbuster',
               help='Name of HuggingFace model to load for claim detection.'
               )
+@click.option('--output', '-o', default=None, help='Filename of output file')
 @click.option('--config', '-c',
               default='concatenated',
               help='Configuration for which features to use in detection.',
               type=click.Choice(['concatenated']))
+@click.option('--overwrite', type=bool, default=False, is_flag=True)
 def detect(ctx,
-           features_file,
            metadata,
-           video_dir,
-           video_feat_dir,
+           features_file,
            model,
            output,
            config,
            overwrite
            ):
+    '''Detect claims from extracted features'''
 
-    if video_dir is not None and video_feat_dir is not None:
-        logger.warning(f'This function is not intended to be run with BOTH video dir and video feature dir provided. Will now carry out video feature extraction and detection together.')
+    # check that one of metadata or features_file is provided
+    if metadata is None and features_file is None:
+        raise ValueError('At least one of --features_file or --metadata must be provided')
+    elif metadata and features_file is None:
+        # attempt to find based on metadata file name if no features_file found
+        features_file = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"{Path(metadata).stem}_feat.csv"
+        assert os.path.isfile(features_file), f"Attempted to find features file automatically based on metadata. {features_file} is not a valid file path."
 
-        extract(ctx, metadata, video_dir, video_feat_dir)
-
-    detector = main.ClaimDetector.from_transformers(model=model)
-
+    # determine output path
     if output is None and metadata is not None:
         output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"{Path(metadata).stem}_detected.csv"
     elif output is None and metadata is None:
         output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"all_detected.csv"
 
+    # if output is existing and overwrite is not set, do nothing.
+    if os.path.isfile(output) and not overwrite:
+        logger.info(f'{output} file already exists and overwrite flag is not set. Ending.')
+        return None
+
+    # read in file
     infile = pd.read_csv(features_file)
-    claims = detector(infile['sentence'])
+
+    # do detection
+    detector = main.ClaimDetector.from_transformers(model=model)
+    claims = detector(infile['sentence'].to_list())
+
+    # collect dataframe of results
     scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])
 
-    result = pd.concat([infile, scores], axis=1)
+    # combine and save
+    result = pd.concat([infile, scores], axis=1, ignore_index=True)
     result.to_csv(output)
 
 if __name__ == '__main__':
