@@ -166,7 +166,7 @@ def download(file, savepath, overwrite = False, max_download = None):
             try:
                 ydl.download(video.as_url())
                 success += 1
-            except:
+            except Exception:
                 logger.error('Something went wrong')
                 errored += 1
     logger.info(f'Downloaded {success} succesfully, skipped {skipped} existing, {errored} failed.')
