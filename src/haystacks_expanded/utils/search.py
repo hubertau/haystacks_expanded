@@ -6,7 +6,7 @@ import glob
 from loguru import logger
 import yt_dlp
 from dataclasses import dataclass, field
-from pathlib import PosixPath
+from pathlib import PosixPath, Path
 
 
 @dataclass
@@ -82,8 +82,9 @@ def download(file, savepath, overwrite = False, max_download = None):
                 username= row['aweme_info']['author']['unique_id']
             ))
 
-    existing_videos = glob.glob(os.path.join(savepath, '*.mp4'))
-    existing_videos = [os.path.split(i)[-1].split('.')[0] for i in existing_videos]
+    existing_videos = glob.glob(os.path.join(savepath, 'videos', '*.mp4'))
+    existing_videos = [Path(i).stem for i in existing_videos]
+    logger.debug(f'{existing_videos[:10]}')
 
     ydl_opts= {
         'outtmpl': os.path.join(savepath, f"videos/%(id)s.%(ext)s"),
@@ -91,17 +92,22 @@ def download(file, savepath, overwrite = False, max_download = None):
         'logger': logger
     }
     skipped = 0
+    success = 0
+    errored = 0
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for counter, video in enumerate(all_ids):
             if video.id in existing_videos:
                 logger.info(f'{video.id} already downloaded. Continuing...')
                 skipped += 1
-            logger.info(f"{counter}, {skipped}, {max_download}")
+                continue
+            logger.info(f"processing {counter}, skipped {skipped}, errored: {errored}, max dl:{max_download}")
             if max_download is not None and counter-skipped >= max_download:
                 logger.info(f'Max download of {max_download} reached. Terminating...')
                 break
             try:
                 ydl.download(video.as_url())
+                success += 1
             except:
                 logger.error('Something went wrong')
-                skipped += 1
+                errored += 1
+    logger.info(f'Downloaded {success} succesfully, skipped {skipped} existing, {errored} failed.')
