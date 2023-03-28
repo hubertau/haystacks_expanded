@@ -79,7 +79,7 @@ def cli(ctx, debug, gpu, config_file, log_file):
 @click.pass_context
 @click.argument('query_name')
 @click.option('--savepath', default=None, help = 'Savepath for returned query. Will default to path set in config file')
-@click.option('--period', default=1, help='Number of days back to search')
+@click.option('--period', default=None, help='Number of days back to search. Can be provided in queries json. Specifying here will override json value', type=int)
 def search(ctx, query_name, savepath, period):
     """Search TikTok with a prepared query"""
 
@@ -87,9 +87,18 @@ def search(ctx, query_name, savepath, period):
         queries = json.load(f)
     assert query_name in queries, ValueError(f'Query name {query_name} not in queries file')
 
+
+    if period is None and 'period' not in queries[query_name]:
+        period = 1
+    elif period is None and 'period' in queries[query_name]:
+        period = int(queries[query_name]['period'])
+    else:
+        pass
+    logger.info(f'Period is set to {period} days')
+
     utils.query(
         query_name,
-        queries[query_name],
+        queries[query_name]['text'],
         savepath = f"{ctx.obj['CONFIG']['locations']['raw_data'] if savepath is None else savepath}",
         token = ctx.obj['CONFIG']['API']['token'],
         period = period
@@ -111,6 +120,26 @@ def download(ctx, query_result, savepath, overwrite, max_download):
         max_download=max_download
     )
 
+@cli.command()
+@click.pass_context
+@click.argument('query_result')
+@click.option('--savepath', default=None, help = 'Savepath for returned query. Will default to path set in config file')
+@click.option('--overwrite', default=False, help='overwrite already downloaded videos')
+def comments(ctx, query_result, savepath, overwrite):
+    '''Retrieve the comments of a query result'''
+
+    savepath = Path(f"{ctx.obj['CONFIG']['locations']['raw_data'] if savepath is None else savepath}") / 'comments'
+    if not os.path.isdir(savepath):
+        os.mkdir(savepath)
+    savepath = savepath / (Path(query_result).stem + '_comments.json')
+    if os.path.isfile(savepath) and not overwrite:
+        raise FileExistsError(f'Outfile already exists at {savepath} and overwrite flag is False. Ending.')
+
+    utils.comment_retrieval(
+        query_result,
+        savepath,
+        token = ctx.obj['CONFIG']['API']['token']
+    )
 
 def common_options(function):
     function = click.option('--metadata', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')(function)
@@ -119,7 +148,6 @@ def common_options(function):
     function = click.option('--output', '-o', default=None, help='Filename of output file')(function)
     function = click.option('--overwrite', type=bool, default=False, is_flag=True)(function)
     return function
-
 
 @cli.command()
 @click.pass_context
