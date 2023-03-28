@@ -12,6 +12,7 @@ import jsonlines
 import pandas as pd
 import numpy as np
 import glob
+from sentence_transformers import SentenceTransformer, util
 import video_ocr
 from tqdm import tqdm
 from dataclasses import asdict
@@ -88,6 +89,9 @@ class HaystacksFeatureExtractor:
 
         corrector = pipeline("text2text-generation", model='oliverguhr/spelling-correction-english-base')
 
+        deduplicator = SentenceTransformer('paraphrase-MiniLM-L12-v2')
+        deduplication_threshold = 0.7
+
         whisper_model = whisper.load_model('small')
 
         if overwrite:
@@ -103,12 +107,33 @@ class HaystacksFeatureExtractor:
             # logger.info(f'Processing {video.id}')
             videoinfosavepath = self.feature_output_path / f'{video.id}.pkl'
 
+            ## PERFORM OCR
             ocr_temp = video_ocr.perform_video_ocr(
                 str(video.video_location)
             )
-            video.ocr_text = '. '.join([corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp])
+            ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
+            if ocr_text_list:
+                embeddings = deduplicator.encode(ocr_text_list, convert_to_tensor=True)
+
+                #Compute cosine-similarits
+                cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
+
+                # discard duplicates before appending (there will be many frames that return similar-ish text)
+                to_discard = set()
+                for index, row in enumerate(cosine_scores):
+                    consider = row[index+1:] > deduplication_threshold
+                    to_discard.update(np.where(consider)[0]+index+1)
+
+                cleaned = list(np.delete(ocr_text_list, list(to_discard)))
+            else:
+                cleaned = ocr_text_list
+
+            video.ocr_text = '. '.join(cleaned)
+
+            ## PERFORM WHISPER
             video.whisper_text = whisper_model.transcribe(str(video.video_location), fp16=False).get('text', '').strip()
 
+            ## COMBINE DESCRIPTION, WHISPER, AND OCR
             to_combine = [i for i in [video.description, video.ocr_text, video.whisper_text] if len(i)>0]
             video.concatenated = '. '.join(to_combine)
 
@@ -131,7 +156,9 @@ class HaystacksFeatureExtractor:
 
         # remove ids that already exist in the existing_df
         if os.path.isfile(savename) and not overwrite:
-            all_ids = [i for i in all_ids if i in existing_df['id'].unique()]
+            all_ids = np.array(all_ids)
+            all_ids = all_ids[~np.in1d(all_ids, existing_df['id'].unique())]
+            all_ids = list(all_ids)
 
         # rehydrate load paths for unpickling
         all_ids = [Path(self.feature_output_path / f'{id}.pkl') for id in all_ids]
@@ -162,7 +189,7 @@ class HaystacksFeatureExtractor:
 
         # append to any existing dataframe
         if os.path.isfile(savename) and not overwrite:
-            df = pd.concat([existing_df, df])
+            df = pd.concat([existing_df, df], ignore_index=True)
 
         # save
         df.to_csv(savename)
