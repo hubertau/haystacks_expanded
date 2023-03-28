@@ -38,6 +38,12 @@ def cli(ctx, debug, gpu, config_file, log_file):
             raw_data_loc = ''
             while not os.path.exists(raw_data_loc):
                 raw_data_loc = input("Where to store data files, both query json results and mp4 videos? ")
+            features_loc = ''
+            while not os.path.exists(features_loc):
+                features_loc = input("Where to store features files, i.e. extracted features from raw data?")
+            processed_loc = ''
+            while not os.path.exists(processed_loc):
+                processed_loc = input("Where to store features files, i.e. extracted features from raw data?")
             token = None
             while not token:
                 token = input("What is your API token? ")
@@ -46,10 +52,14 @@ def cli(ctx, debug, gpu, config_file, log_file):
                 queries_json = input("Where is your queries.json with query_name: query pairs? ")
 
             raw_data_loc = os.path.abspath(raw_data_loc)
+            features_loc = os.path.abspath(features_loc)
+            processed_loc = os.path.abspath(processed_loc)
             queries_json = os.path.abspath(queries_json)
             config = configparser.ConfigParser()
             config['locations'] = {}
             config['locations']['raw_data'] = raw_data_loc
+            config['locations']['features'] = features_loc
+            config['locations']['processed'] = processed_loc
             config['locations']['queries_json'] = queries_json
             config['API'] = {}
             config['API']['token'] = token
@@ -112,7 +122,8 @@ def common_options(function):
 @cli.command()
 @click.pass_context
 @common_options
-def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite):
+@click.option('--reextract', '-r', is_flag=True, default=False, help='whether to reextract features.')
+def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextract):
 
     extractor = utils.HaystacksFeatureExtractor(
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
@@ -120,14 +131,19 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite):
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'video_features' if video_feat_dir is None else video_feat_dir}",
     )
 
-    extractor.extract_features(overwrite=overwrite)
+    extractor.extract_features(overwrite=reextract)
 
-    if output is not None:
-        extractor.save_to(output, overwrite)
-        logger.info(f'Consolidated csv saved to {output}')
+    if output is None and metadata is not None:
+        output = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"{Path(metadata).stem}_feat.csv"
+    elif output is None and metadata is None:
+        output = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"all_feat.csv"
+
+    extractor.save_to(output, overwrite)
+    logger.info(f'Consolidated csv saved to {output}')
 
 @cli.command()
 @click.pass_context
+@click.argument('features_file')
 @common_options
 @click.option('--model', '-m',
               default='Nithiwat/mdeberta-v3-base_claimbuster',
@@ -137,7 +153,16 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite):
               default='concatenated',
               help='Configuration for which features to use in detection.',
               type=click.Choice(['concatenated']))
-def detect(ctx, metadata, video_dir, video_feat_dir, model, output, config, overwrite):
+def detect(ctx,
+           features_file,
+           metadata,
+           video_dir,
+           video_feat_dir,
+           model,
+           output,
+           config,
+           overwrite
+           ):
 
     if video_dir is not None and video_feat_dir is not None:
         logger.warning(f'This function is not intended to be run with BOTH video dir and video feature dir provided. Will now carry out video feature extraction and detection together.')
@@ -146,24 +171,17 @@ def detect(ctx, metadata, video_dir, video_feat_dir, model, output, config, over
 
     detector = main.ClaimDetector.from_transformers(model=model)
 
-    inference = None
-    if output is not None:
-        if os.path.isfile(output) and Path(output).suffix == '.csv':
-            inference = pd.from_csv(output)
-            logger.info(f'Loaded in existing dataset from {output}')
-        elif os.path.isdir(output):
-            savename = Path(output) / 'claim_detection.csv'
-        elif Path(output).parent.is_dir():
-            savename = output
-        else:
-            raise ValueError(f'{output} is neither a valid existing dataset file nor a valid directory nor a valid path for a new save object.')
-    else:
-        savename = Path(video_feat_dir) / 'claim_detection.csv'
+    if output is None and metadata is not None:
+        output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"{Path(metadata).stem}_detected.csv"
+    elif output is None and metadata is None:
+        output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"all_detected.csv"
 
-    detector.detect()
+    infile = pd.read_csv(features_file)
+    claims = detector(infile['sentence'])
+    scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])
 
-
-
+    result = pd.concat([infile, scores], axis=1)
+    result.to_csv(output)
 
 if __name__ == '__main__':
     cli()
