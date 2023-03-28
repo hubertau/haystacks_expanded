@@ -1,3 +1,10 @@
 {
-    "health": "covid AND vaccine"
+    "health": {
+        "text": "covid AND vaccine",
+        "period": 1
+    },
+    "health7": {
+        "text": "covid vaccine hoax leak",
+        "period": 7
+    }
 }
