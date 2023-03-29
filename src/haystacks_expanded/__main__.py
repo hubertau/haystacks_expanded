@@ -226,7 +226,7 @@ def detect(ctx,
     scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])
 
     # combine and save
-    result = pd.concat([infile, scores], axis=1, ignore_index=True)
+    result = pd.concat([infile, scores], axis=1)
     result.to_csv(output)
 
 if __name__ == '__main__':
