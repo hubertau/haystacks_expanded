@@ -25,10 +25,11 @@ from .search import video_info
 
 class HaystacksFeatureExtractor:
 
-    def __init__(self, metadata, video_path, feature_output_path):
+    def __init__(self, metadata, video_path, feature_output_path, device='cpu'):
         self.metadata = Path(metadata)
         self.video_path = Path(video_path)
         self.feature_output_path = Path(feature_output_path)
+        self.device = device
 
         self._consolidate_data()
 
@@ -87,12 +88,16 @@ class HaystacksFeatureExtractor:
 
     def extract_features(self, overwrite = False):
 
-        corrector = pipeline("text2text-generation", model='oliverguhr/spelling-correction-english-base')
+        corrector = pipeline(
+            task="text2text-generation",
+            model='oliverguhr/spelling-correction-english-base',
+            device=self.device
+        )
 
-        deduplicator = SentenceTransformer('paraphrase-MiniLM-L12-v2')
+        deduplicator = SentenceTransformer('paraphrase-MiniLM-L12-v2', device=self.device)
         deduplication_threshold = 0.7
 
-        whisper_model = whisper.load_model('small')
+        whisper_model = whisper.load_model('small', device=self.device)
 
         if overwrite:
             self.videos_to_process = self.valid_videos
@@ -114,6 +119,9 @@ class HaystacksFeatureExtractor:
             ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
             if ocr_text_list:
                 embeddings = deduplicator.encode(ocr_text_list, convert_to_tensor=True)
+
+                if self.device != 'cpu':
+                    embeddings = embeddings.cpu()
 
                 #Compute cosine-similarits
                 cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
