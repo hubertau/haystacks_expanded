@@ -116,7 +116,18 @@ class HaystacksFeatureExtractor:
             ocr_temp = video_ocr.perform_video_ocr(
                 str(video.video_location)
             )
-            ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
+
+            # prep text for correction
+            ocr_stripped = [frame.text.strip().replace('\n', ' ') for frame in ocr_temp]
+
+            ocr_text_list = corrector(ocr_stripped, max_length=1024)
+
+            ocr_text_list = [i.get('generated_text') for i in ocr_text_list]
+
+
+            # ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
+
+
             if ocr_text_list:
                 embeddings = deduplicator.encode(ocr_text_list, convert_to_tensor=True)
 
