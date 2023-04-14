@@ -236,6 +236,10 @@ def detect(ctx,
 
     # combine and save
     result = pd.concat([infile, scores], axis=1)
+
+    # add URL row
+    result['url'] = result['id'].apply(lambda some_id: f'https://tiktok.com/@tiktok/video/{some_id}')
+
     result.to_csv(output)
 
 if __name__ == '__main__':

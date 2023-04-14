@@ -168,7 +168,12 @@ class HaystacksFeatureExtractor:
             logger.info('Existing save file found, loading in...')
 
         # collect all feature files from feature output path
-        all_features = glob.glob(os.path.join(self.feature_output_path, '*.pkl'))
+        # if metadata is present, filter those out
+        if os.path.isfile(self.metadata):
+            all_features = [Path(self.feature_output_path) / f'{video.id}.pkl' for video in self.valid_videos]
+            logger.info(f'Metadata videos collected: {len(all_features)}')
+        else:
+            all_features = glob.glob(os.path.join(self.feature_output_path, '*.pkl'))
 
         # extract ids from these items
         all_ids = [Path(item).stem for item in all_features]
