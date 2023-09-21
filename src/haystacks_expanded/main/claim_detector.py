@@ -13,11 +13,16 @@ class ClaimDetector:
         self.pipeline = pipeline
 
     @classmethod
-    def from_transformers(cls, model = "Nithiwat/mdeberta-v3-base_claimbuster"):
+    def from_transformers(cls, model = "Nithiwat/mdeberta-v3-base_claimbuster", device='cpu'):
         #Nithiwat/mdeberta-v3-base_claimbuster
         #sschellhammer/SciTweets_SciBert
 
-        pipe = pipeline(task='text-classification', model = model, top_k=None)
+        pipe = pipeline(
+            task='text-classification',
+            model = model,
+            top_k=None,
+            device=device
+        )
 
         return ClaimDetector(pipe)
 

@@ -25,10 +25,11 @@ from .search import video_info
 
 class HaystacksFeatureExtractor:
 
-    def __init__(self, metadata, video_path, feature_output_path):
+    def __init__(self, metadata, video_path, feature_output_path, device='cpu'):
         self.metadata = Path(metadata)
         self.video_path = Path(video_path)
         self.feature_output_path = Path(feature_output_path)
+        self.device = device
 
         self._consolidate_data()
 
@@ -87,12 +88,16 @@ class HaystacksFeatureExtractor:
 
     def extract_features(self, overwrite = False):
 
-        corrector = pipeline("text2text-generation", model='oliverguhr/spelling-correction-english-base')
+        corrector = pipeline(
+            task="text2text-generation",
+            model='oliverguhr/spelling-correction-english-base',
+            device=self.device
+        )
 
-        deduplicator = SentenceTransformer('paraphrase-MiniLM-L12-v2')
+        deduplicator = SentenceTransformer('paraphrase-MiniLM-L12-v2', device=self.device)
         deduplication_threshold = 0.7
 
-        whisper_model = whisper.load_model('small')
+        whisper_model = whisper.load_model('small', device=self.device)
 
         if overwrite:
             self.videos_to_process = self.valid_videos
@@ -111,9 +116,23 @@ class HaystacksFeatureExtractor:
             ocr_temp = video_ocr.perform_video_ocr(
                 str(video.video_location)
             )
-            ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
+
+            # prep text for correction
+            ocr_stripped = [frame.text.strip().replace('\n', ' ') for frame in ocr_temp]
+
+            ocr_text_list = corrector(ocr_stripped, max_length=1024)
+
+            ocr_text_list = [i.get('generated_text') for i in ocr_text_list]
+
+
+            # ocr_text_list = [corrector(frame.text.strip().replace('\n', ' '), max_length=1024)[0]['generated_text'] for frame in ocr_temp]
+
+
             if ocr_text_list:
                 embeddings = deduplicator.encode(ocr_text_list, convert_to_tensor=True)
+
+                if self.device != 'cpu':
+                    embeddings = embeddings.cpu()
 
                 #Compute cosine-similarits
                 cosine_scores = util.pytorch_cos_sim(embeddings, embeddings)
@@ -149,7 +168,12 @@ class HaystacksFeatureExtractor:
             logger.info('Existing save file found, loading in...')
 
         # collect all feature files from feature output path
-        all_features = glob.glob(os.path.join(self.feature_output_path, '*.pkl'))
+        # if metadata is present, filter those out
+        if os.path.isfile(self.metadata):
+            all_features = [Path(self.feature_output_path) / f'{video.id}.pkl' for video in self.valid_videos]
+            logger.info(f'Metadata videos collected: {len(all_features)}')
+        else:
+            all_features = glob.glob(os.path.join(self.feature_output_path, '*.pkl'))
 
         # extract ids from these items
         all_ids = [Path(item).stem for item in all_features]

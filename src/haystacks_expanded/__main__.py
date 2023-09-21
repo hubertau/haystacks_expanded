@@ -4,6 +4,7 @@ import json
 from loguru import logger
 from pathlib import Path
 import sys
+import torch
 import configparser
 import pandas as pd
 
@@ -40,10 +41,10 @@ def cli(ctx, debug, gpu, config_file, log_file):
                 raw_data_loc = input("Where to store data files, both query json results and mp4 videos? ")
             features_loc = ''
             while not os.path.exists(features_loc):
-                features_loc = input("Where to store features files, i.e. extracted features from raw data?")
+                features_loc = input("Where to store features files, i.e. extracted features from raw data? ")
             processed_loc = ''
             while not os.path.exists(processed_loc):
-                processed_loc = input("Where to store features files, i.e. extracted features from raw data?")
+                processed_loc = input("Where to store processed files, i.e. claims deteced from features? ")
             token = None
             while not token:
                 token = input("What is your API token? ")
@@ -59,7 +60,7 @@ def cli(ctx, debug, gpu, config_file, log_file):
             config['locations'] = {}
             config['locations']['raw_data'] = raw_data_loc
             config['locations']['features'] = features_loc
-            config['locations']['processed'] = processed_loc
+            config['locations']['processed_loc'] = processed_loc
             config['locations']['queries_json'] = queries_json
             config['API'] = {}
             config['API']['token'] = token
@@ -74,6 +75,13 @@ def cli(ctx, debug, gpu, config_file, log_file):
     ctx.obj['DEBUG'] = debug
     ctx.obj['GPU'] = gpu
     ctx.obj['CONFIG'] = config
+
+    if gpu:
+        logger.info(f'GPU flag set. {torch.cuda.device_count()} devices found. Using first one.')
+        assert torch.cuda.is_available()
+        ctx.obj['DEVICE'] = 'cuda:0'
+    else:
+        ctx.obj['DEVICE'] = 'cpu'
 
 @cli.command()
 @click.pass_context
@@ -160,17 +168,24 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextra
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'videos' if video_dir is None else video_dir}",
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'video_features' if video_feat_dir is None else video_feat_dir}",
+        device = ctx.obj['DEVICE']
     )
 
     extractor.extract_features(overwrite=reextract)
 
     if output is None and metadata is not None:
-        output = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"{Path(metadata).stem}_feat.csv"
+        output = Path(ctx.obj['CONFIG']['locations']['features']) / f"{Path(metadata).stem}_feat.csv"
     elif output is None and metadata is None:
-        output = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"all_feat.csv"
+        output = Path(ctx.obj['CONFIG']['locations']['features']) / f"all_feat.csv"
 
     extractor.save_to(output, overwrite)
     logger.info(f'Consolidated csv saved to {output}')
+
+@cli.command()
+@click.pass_context
+@click.argument('infile')
+def explode(ctx, infile):
+    utils.sent_explode_func(infile)
 
 @cli.command()
 @click.pass_context
@@ -186,29 +201,44 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextra
               help='Configuration for which features to use in detection.',
               type=click.Choice(['concatenated']))
 @click.option('--overwrite', type=bool, default=False, is_flag=True)
+@click.option('--intype', '-t', type=click.Choice(['p', # parliamentary debates
+                                                   'q', # oral/written questions
+                                                   't', # titktok videos
+                                                   ]), default = 't')
 def detect(ctx,
            metadata,
            features_file,
            model,
            output,
            config,
-           overwrite
+           overwrite,
+           intype
            ):
     '''Detect claims from extracted features'''
 
-    # check that one of metadata or features_file is provided
-    if metadata is None and features_file is None:
-        raise ValueError('At least one of --features_file or --metadata must be provided')
-    elif metadata and features_file is None:
-        # attempt to find based on metadata file name if no features_file found
-        features_file = Path(ctx.obj['CONFIG']['locations']['features_loc']) / f"{Path(metadata).stem}_feat.csv"
-        assert os.path.isfile(features_file), f"Attempted to find features file automatically based on metadata. {features_file} is not a valid file path."
+    if intype == 't':
+        # check that one of metadata or features_file is provided
+        if metadata is None and features_file is None:
+            raise ValueError('At least one of --features_file or --metadata must be provided')
+        elif metadata and features_file is None:
+            # attempt to find based on metadata file name if no features_file found
+            features_file = Path(ctx.obj['CONFIG']['locations']['features']) / f"{Path(metadata).stem}_feat.csv"
+            assert os.path.isfile(features_file), f"Attempted to find features file automatically based on metadata. {features_file} is not a valid file path."
+    elif intype == 'p':
+        pass
 
     # determine output path
+    prefix_dict = {
+        't': 'all',
+        'p': 'parlspeech',
+        'q': 'parlquest'
+    }
     if output is None and metadata is not None:
+        # if metadata is provided, it must be tiktok
         output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"{Path(metadata).stem}_detected.csv"
     elif output is None and metadata is None:
-        output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"all_detected.csv"
+        output = Path(ctx.obj['CONFIG']['locations']['processed_loc']) / f"{prefix_dict[intype]}_detected.csv"
+    logger.info(f'Output file set to {output}')
 
     # if output is existing and overwrite is not set, do nothing.
     if os.path.isfile(output) and not overwrite:
@@ -219,7 +249,7 @@ def detect(ctx,
     infile = pd.read_csv(features_file)
 
     # do detection
-    detector = main.ClaimDetector.from_transformers(model=model)
+    detector = main.ClaimDetector.from_transformers(model=model, device=ctx.obj['DEVICE'])
     claims = detector(infile['sentence'].to_list())
 
     # collect dataframe of results
@@ -227,7 +257,12 @@ def detect(ctx,
 
     # combine and save
     result = pd.concat([infile, scores], axis=1)
+
+    # add URL row
+    result['url'] = result['id'].apply(lambda some_id: f'https://tiktok.com/@tiktok/video/{some_id}')
+
     result.to_csv(output)
+
 
 if __name__ == '__main__':
     cli()
