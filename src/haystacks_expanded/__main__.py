@@ -216,7 +216,6 @@ def detect(ctx,
            ):
     '''Detect claims from extracted features'''
 
-<<<<<<< HEAD
     if intype == 't':
         # check that one of metadata or features_file is provided
         if metadata is None and features_file is None:
@@ -227,15 +226,6 @@ def detect(ctx,
             assert os.path.isfile(features_file), f"Attempted to find features file automatically based on metadata. {features_file} is not a valid file path."
     elif intype == 'p':
         pass
-=======
-    # check that one of metadata or features_file is provided
-    if metadata is None and features_file is None:
-        raise ValueError('At least one of --features_file or --metadata must be provided')
-    elif metadata and features_file is None:
-        # attempt to find based on metadata file name if no features_file found
-        features_file = Path(ctx.obj['CONFIG']['locations']['features']) / f"{Path(metadata).stem}_feat.csv"
-        assert os.path.isfile(features_file), f"Attempted to find features file automatically based on metadata. {features_file} is not a valid file path."
->>>>>>> 5a93c828317436edb9c692ef7ec101673916e491
 
     # determine output path
     prefix_dict = {
