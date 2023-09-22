@@ -1,19 +1,20 @@
 name: dsf
 channels:
-    - conda-forge
-    - pytorch
+  - conda-forge
 dependencies:
-    - python=3.10
-    - ipykernel
-    - loguru
-    - conda-lock
-    - ipywidgets
-    - pytesseract
-    - librosa
-    - pytorch
-    - torchaudio
-    - torchvision
-    - timm==0.5.4
-    - jsonlines
-    - sqlite
+  - python=3.10
+  - ipykernel
+  - loguru
+  - conda-lock
+  - ipywidgets
+  - pytesseract
+  - librosa
+  - pytorch
+  - torchaudio
+  - torchvision
+  - timm==0.5.4
+  - jsonlines
+  - sqlite
+  - lxml
+  - wget
 prefix: /opt/homebrew/Caskroom/miniforge/base/envs/dsf
