@@ -150,7 +150,11 @@ class HaystacksFeatureExtractor:
             video.ocr_text = '. '.join(cleaned)
 
             ## PERFORM WHISPER
-            video.whisper_text = whisper_model.transcribe(str(video.video_location), fp16=False).get('text', '').strip()
+            try:
+                video.whisper_text = whisper_model.transcribe(str(video.video_location), fp16=False).get('text', '').strip()
+            except RuntimeError as e:
+                logger.error(e)
+                video.whisper_text = ''
 
             ## COMBINE DESCRIPTION, WHISPER, AND OCR
             to_combine = [i for i in [video.description, video.ocr_text, video.whisper_text] if len(i)>0]
