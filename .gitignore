@@ -10,3 +10,5 @@ haystacks_expanded/test_video.mp4
 *.pyc
 src/haystacks_expanded/everything_at_once/
 src/haystacks_expanded/video_feature_extractor
+logs/*
+arc/*
