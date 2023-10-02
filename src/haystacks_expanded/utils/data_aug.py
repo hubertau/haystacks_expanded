@@ -137,7 +137,7 @@ def api_augment(
     logger.info(f'Specified outfile: {outfile}')
     logger.info(f'Batch size: {batch_size}')
     logger.info(f'Augment size: {augment_size}')
-    logger.info(f'(for debug only) number of batches to process up to')
+    logger.info(f'(for debug only) number of batches to process up to: {up_to}')
     logger.info(f'Overwrite: {overwrite}')
     logger.info(f'Skip Existing: {skip_existing}')
 
@@ -160,6 +160,7 @@ def api_augment(
     if os.path.isfile(outfile):
         with open(outfile, 'r') as f:
             out_dict = json.load(f)
+        out_dict = defaultdict(list, out_dict)
     else:
         out_dict = defaultdict(list)
 
@@ -188,23 +189,23 @@ def api_augment(
     # Do Augmentation
     instruction = textwrap.dedent(f"""You are an advanced AI writer to tasked with data augmentation to help detect check-worthy claims in sentences. Inaccuracies in data are not a problem.
 
-    n={augment_size}. For each input sentence, Generate n additional semantically similar sentences with the following constraints: numbers, percentages, and entities are changed  (e.g., '40%' could be changed to '35%', '45%', etc. - Note that inaccuracies are NOT a problem), and rephrasing is allowed. Changing to a similar topic is also allowed. Ensure there is substantial variety: for example, do not repeat the same company name or a percentage number n times. Input is formatted as [hash]:[original sentence] pairs. Format response as a json object, with hashes of the original sentences as keys and generated sentences as values. Ensure that each sentence has n additional generated sentences.""")
+    For each input sentence, Generate {augment_size} additional semantically similar sentences with the following constraints: numbers, percentages, and entities are changed  (e.g., '40%' could be changed to '35%', '45%', etc. - Note that inaccuracies are NOT a problem), and rephrasing is allowed. Changing to a similar topic is also allowed. Ensure there is substantial variety: for example, do not repeat the same company name or a percentage number n times. Input is formatted as [hash]:[original sentence] pairs. Format response as a json object, with hashes of the original sentences as keys and the {augment_size} generated sentences as values. Ensure that each original sentence has {augment_size} generated sentences.""")
+    logger.info(f'Instruction: {instruction}')
 
     responses = []
     for counter, sentences in enumerate(input_iterator):
-        logger.info(f'Processing batch {counter} of {num_batches}')
+        logger.info(f'Processing batch {counter+1} of {num_batches}')
 
         # check existing
         if skip_existing:
             already_existing = [h in out_dict for h in sentences.keys()]
-            if any(already_existing):
-                logger.info(f'{sum(already_existing)} found to already exist')
             if all(already_existing):
-                logger.info(f'All items in batch {counter} are already present. Ending batch...')
+                logger.info(f'All items in batch {counter+1} are already present. Ending batch...')
                 continue
-            else:
-                # filter out existing ones
-                sentences = {k: v for k, v in sentences.items() if k not in out_dict}
+            elif any(already_existing):
+                logger.info(f'{sum(already_existing)} found to already exist')
+            # filter out existing ones
+            sentences = {k: v for k, v in sentences.items() if k not in out_dict}
 
         if up_to and counter >= up_to:
             logger.info(f'Maximum batch number {up_to} reached. Ending...')
@@ -225,16 +226,25 @@ def api_augment(
             if choice_element['finish_reason'] != 'stop':
                 logger.warning(f"Choice {index} of Completion ID {temp_response.id} finished because of: {choice_element['finish_reason']}")
 
-            this_response = json.loads(choice_element['message']['content'])
+            try:
+                this_response = json.loads(choice_element['message']['content'])
+            except json.decoder.JSONDecodeError as e:
+                logger.error(choice_element['message']['content'])
+                logger.error(e)
+                break
 
             for k, v in this_response.items():
+                if len(v) < 10:
+                    logger.warning(f'Sentence {k} had {len(v)} generated sentences')
                 if overwrite and len(out_dict[k]) > 0:
                     out_dict[k] = v
                 else:
                     out_dict[k] = out_dict[k] + v
-
-        with open(outfile, 'w' ) as f:
-            json.dump(out_dict, f)
+        else:
+            with open(outfile, 'w' ) as f:
+                json.dump(out_dict, f)
+            continue
+        break
 
 
 if __name__ == '__main__':
