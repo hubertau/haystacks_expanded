@@ -124,10 +124,22 @@ def api_augment(
         data_to_augment,
         api_config_file,
         outfile = None,
+        batch_size = 10,
         augment_size = 10,
         up_to = None,
-        overwrite = False
+        overwrite = False,
+        skip_existing = True,
     ):
+
+    logger.info('Received Parameters:\n')
+    logger.info(f'Data file: {data_to_augment}')
+    logger.info(f'API Config File: {api_config_file}')
+    logger.info(f'Specified outfile: {outfile}')
+    logger.info(f'Batch size: {batch_size}')
+    logger.info(f'Augment size: {augment_size}')
+    logger.info(f'(for debug only) number of batches to process up to')
+    logger.info(f'Overwrite: {overwrite}')
+    logger.info(f'Skip Existing: {skip_existing}')
 
     # Read in data
     df = pd.read_csv(data_to_augment)
@@ -135,7 +147,7 @@ def api_augment(
     # set output file dir an object name
     if not outfile:
         logger.info(f'No outfile path specified: saving to same folder as input data')
-        outfile = Path(data_to_augment).parent.resolve() / f"{Path(data_to_augment).stem}_aug.csv"
+        outfile = Path(data_to_augment).parent.resolve() / f"{Path(data_to_augment).stem}_aug.json"
     else:
         # Test
         try:
@@ -161,7 +173,6 @@ def api_augment(
             yield dict(zip(keys, values))
 
     # Use the generator
-    batch_size = 5
     filtered_df = df[(df['label'] == 1) & (df['sentence'].apply(len) < 500)]
     # print(len(filtered_df))
     input_iterator = batched_key_value_pairs(filtered_df, 'hash', 'sentence', batch_size)
@@ -182,6 +193,19 @@ def api_augment(
     responses = []
     for counter, sentences in enumerate(input_iterator):
         logger.info(f'Processing batch {counter} of {num_batches}')
+
+        # check existing
+        if skip_existing:
+            already_existing = [h in out_dict for h in sentences.keys()]
+            if any(already_existing):
+                logger.info(f'{sum(already_existing)} found to already exist')
+            if all(already_existing):
+                logger.info(f'All items in batch {counter} are already present. Ending batch...')
+                continue
+            else:
+                # filter out existing ones
+                sentences = {k: v for k, v in sentences.items() if k not in out_dict}
+
         if up_to and counter >= up_to:
             logger.info(f'Maximum batch number {up_to} reached. Ending...')
             break

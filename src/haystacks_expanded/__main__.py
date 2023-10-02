@@ -15,7 +15,7 @@ from . import utils, main
 @click.option('--debug/--no-debug', default=False)
 @click.option('--gpu/--no-gpu', default=False)
 @click.option('--config_file', '-c', default=None)
-@click.option('--log_file')
+@click.option('--log_file', '-l')
 def cli(ctx, debug, gpu, config_file, log_file):
     """Haystacks with TikTok and Parliament.
 
@@ -277,6 +277,37 @@ def consolidate(ctx, file_dir, glob, checkmin, seed):
         glob_pattern=glob,
         checkworthy_min=checkmin,
         seed=seed
+    )
+
+@cli.command()
+@click.pass_context
+@click.option('--file', '-f', help='File to augment', required=True)
+@click.option('--api-config-file', '-a', help='API config file', required=True)
+@click.option('--outfile', '-o', help='Output File. If none, will save to a file in the same directory as input file.')
+@click.option('--batch-size', '-b', help='Batch of sentences size.', default = 10)
+@click.option('--augment_size', '-s', help='augment size, i.e. the number of sentences to generate per input sentence.', default = 10)
+@click.option('--up-to', '-u', help='For debugging purposes. Number of batches to process up to.', type=int)
+@click.option('--overwrite', '-w', help='Whether or not to overwrite existing augmentations.', type=bool, is_flag = True)
+@click.option('--skip-existing', '-e', help='Whether or not to skip existing sentences. If not, then it will extend entreis unless overwrite flag is set.', type=bool, default=True)
+def aug(ctx,
+        file,
+        api_config_file,
+        outfile,
+        batch_size,
+        augment_size,
+        up_to,
+        overwrite,
+        skip_existing
+    ):
+    utils.api_augment(
+        data_to_augment=file,
+        api_config_file = api_config_file,
+        outfile = outfile,
+        batch_size = batch_size,
+        augment_size = augment_size,
+        up_to=up_to,
+        overwrite=overwrite,
+        skip_existing=skip_existing
     )
 
 if __name__ == '__main__':
