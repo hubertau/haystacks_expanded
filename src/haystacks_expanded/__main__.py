@@ -17,7 +17,7 @@ from . import utils, main
 @click.option('--config_file', '-c', default=None)
 @click.option('--log_file')
 def cli(ctx, debug, gpu, config_file, log_file):
-    """Haystacks with TikTok and Instagram.
+    """Haystacks with TikTok and Parliament.
 
     """
     logger.info(f"Debug mode is {'on' if debug else 'off'}")
@@ -264,6 +264,20 @@ def detect(ctx,
 
     result.to_csv(output)
 
+@cli.command()
+@click.pass_context
+@click.option('file_dir', '-f', help='Directory of annotated files')
+@click.option('glob', '-g', help='Glob pattern to use', default = '*annotated.*')
+@click.option('checkmin', '-c', help='Chceck-worthy Factual Score Minimum', default = 0.4)
+@click.option('seed', '-s', help='random seed', default = 1)
+def consolidate(ctx, file_dir, glob, checkmin, seed):
+
+    utils.consolidate_annots(
+        file_dir=file_dir,
+        glob_pattern=glob,
+        checkworthy_min=checkmin,
+        seed=seed
+    )
 
 if __name__ == '__main__':
     cli()
