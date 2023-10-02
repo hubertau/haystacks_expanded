@@ -200,7 +200,7 @@ def api_augment(
         if skip_existing:
             already_existing = [h in out_dict for h in sentences.keys()]
             if all(already_existing):
-                logger.info(f'All items in batch {counter+1} are already present. Ending batch...')
+                logger.info(f'All items in batch {counter+1} are already present. Continuing...')
                 continue
             elif any(already_existing):
                 logger.info(f'{sum(already_existing)} found to already exist')
