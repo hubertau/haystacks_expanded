@@ -12,5 +12,5 @@ src/haystacks_expanded/everything_at_once/
 src/haystacks_expanded/video_feature_extractor
 logs/*
 arc/*
+dev/*
 src/haystacks_expanded/utils/hansardtest.r
-.gitignore
