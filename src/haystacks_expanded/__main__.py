@@ -334,7 +334,7 @@ def combineaug(ctx, original, augmented, outfile):
 @click.option('--data', '-f', help='Data', required=True)
 @click.option('--BASE_MODEL', '-m', help='Base Model Name', required=True)
 @click.option('--outfile', '-o', help='output', required=True)
-@click.option('--MAX_LEN', '-l', help='Max Length', required=True)
+@click.option('--MAX_LEN', '-l', help='Max Length')
 def splitdata(ctx, datacsv, BASE_MODEL, outfile = None, MAX_LEN = 128):
 
     main.make_tdt_split(
