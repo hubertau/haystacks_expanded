@@ -338,7 +338,7 @@ def combineaug(ctx, original, augmented, outfile):
 def splitdata(ctx, data, base_model, outfile = None, max_len = 128):
 
     main.make_tdt_split(
-        datacsv = data,
+        combined_orig_aug = data,
         BASE_MODEL=base_model,
         outfile=outfile,
         MAX_LEN=max_len
