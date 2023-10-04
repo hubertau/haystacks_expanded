@@ -341,7 +341,7 @@ def splitdata(ctx, data, base_model, outfile = None, max_len = 128):
         datacsv = data,
         BASE_MODEL=base_model,
         outfile=outfile,
-        MAX_LEN=MAX_LEN
+        MAX_LEN=max_len
     )
 
 
