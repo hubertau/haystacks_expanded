@@ -29,7 +29,8 @@ import torch
 # from torch.utils.data import Dataset
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 import numpy as np
-from datasets import Dataset, DatasetDict
+from datasets import DatasetDict
+from torch.utils.data import Dataset
 
 from ..utils import get_save_path
 
