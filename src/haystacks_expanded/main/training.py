@@ -28,7 +28,7 @@ import seaborn as sns
 from pylab import rcParams
 from sklearn.model_selection import train_test_split
 import torch
-from torch.utils.data import Dataset
+# from torch.utils.data import Dataset
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 import numpy as np
 
@@ -42,13 +42,13 @@ class LlamaDataset(Dataset):
 
     Huggingface can use these types of dataset as inputs and run all trainning/prediction on them.
     """
-    def __init__(self, input_data, sentiment_targets, tokenizer, max_len):
+    def __init__(self, input_data, targets, tokenizer, max_len):
         """
         Basic generator function for the class.
         -----------------
         input_data : array
             Numpy array of string  input text to use for downstream task
-        sentiment_targets :
+        targets :
             Numpy array of integers indexed in  the pytorch style of [0,C-1] with C being the total number of classes
             In our example this means the target sentiments should range from 0 to 2.
         tokenizer  : Huggingface tokenizer
@@ -62,7 +62,7 @@ class LlamaDataset(Dataset):
             Tokenized text with inputs, attentions and labels, ready for the Training script.
         """
         self.input_data = input_data
-        self.sentiment_targets = sentiment_targets
+        self.targets = targets
         self.tokenizer = tokenizer
         self.max_len = max_len
 
@@ -74,7 +74,7 @@ class LlamaDataset(Dataset):
 
     def __getitem__(self, item):
         text = str(self.input_data[item])
-        target = self.sentiment_targets[item]
+        target = self.targets[item]
         # only difference with the previuous tokenization step is the encode-plus for special tokens
         encoding = self.tokenizer.encode_plus(
           text,
@@ -227,20 +227,20 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128)
     # Creating our train-val-test datasets
     train_ds = LlamaDataset(
         input_data=train_df['sentence'].to_numpy(),
-            sentiment_targets=train_df['label'].to_numpy(),
+            targets=train_df['label'].to_numpy(),
             tokenizer=tokenizer,
             max_len=MAX_LEN
         )
     dev_ds = LlamaDataset(
         input_data=dev_df['sentence'].to_numpy(),
-            sentiment_targets=dev_df['label'].to_numpy(),
+            targets=dev_df['label'].to_numpy(),
             tokenizer=tokenizer,
             max_len=MAX_LEN
         )
 
     test_ds = LlamaDataset(
         input_data=test_df['sentence'].to_numpy(),
-            sentiment_targets=test_df['label'].to_numpy(),
+            targets=test_df['label'].to_numpy(),
             tokenizer=tokenizer,
             max_len=MAX_LEN
         )
