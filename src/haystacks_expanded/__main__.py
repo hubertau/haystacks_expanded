@@ -316,6 +316,35 @@ def aug(ctx,
         supplement=supplement
     )
 
+@cli.command()
+@click.pass_context
+@click.option('--original', '-f', help='Original file', required=True)
+@click.option('--augmented', '-a', help='JSON file of augmented data', required=True)
+@click.option('--outfile', '-o', help='Outfile')
+def combineaug(ctx, original, augmented, outfile):
+
+    main.combine_original_and_aug(
+        original_file=original,
+        aug_file=augmented,
+        outfile=outfile
+    )
+
+@cli.command()
+@click.pass_context
+@click.option('--data', '-f', help='Data', required=True)
+@click.option('--BASE_MODEL', '-m', help='Base Model Name', required=True)
+@click.option('--outfile', '-o', help='output', required=True)
+@click.option('--MAX_LEN', '-l', help='Max Length', required=True)
+def splitdata(ctx, datacsv, BASE_MODEL, outfile = None, MAX_LEN = 128):
+
+    main.make_tdt_split(
+        datacsv = datacsv,
+        BASE_MODEL=BASE_MODEL,
+        outfile=outfile,
+        MAX_LEN=MAX_LEN
+    )
+
+
 if __name__ == '__main__':
     cli()
 

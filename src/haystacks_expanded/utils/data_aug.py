@@ -98,13 +98,6 @@ def consolidate_annots(file_dir, glob_pattern, checkworthy_min, seed = 1):
     logger.info(f'Total length: {len(unique_df)}')
     logger.info(f'Saved to {savepath}')
 
-
-def tts(total_train_file):
-    '''Train test split, making sure no leakage on basis of data augmentation'''
-    pass
-
-from pathlib import Path
-
 def get_save_path(path: str) -> Path:
     """Determine the correct save path for the output."""
     # Convert the input to a Path object
@@ -120,7 +113,6 @@ def get_save_path(path: str) -> Path:
 
     # Raise an error if the directory doesn't exist
     raise ValueError(f"Directory {p.parent} does not exist.")
-
 
 def send_instruction(augment_size, sentences):
 
@@ -142,7 +134,6 @@ def send_instruction(augment_size, sentences):
     )
 
     return r
-
 
 def api_augment(
         data_to_augment,
@@ -331,6 +322,9 @@ def api_augment(
                 logger.error(e)
                 this_response = {}
             for k, v in this_response.items():
+                # if augmenting of size 1 the output from api will be a string and not a list.
+                if isinstance(v, str):
+                    v = [v]
                 if overwrite and len(out_dict[k]) > 0:
                     out_dict[k] = v
                 else:
