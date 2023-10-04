@@ -224,26 +224,39 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128)
     logger.info(f'Dev set size: {len(dev_df)}')
     logger.info(f'Test set size: {len(test_df)}')
 
-    # Creating our train-val-test datasets
-    train_ds = LlamaDataset(
-        input_data=train_df['sentence'].to_numpy(),
-            targets=train_df['label'].to_numpy(),
-            tokenizer=tokenizer,
-            max_len=MAX_LEN
-        )
-    dev_ds = LlamaDataset(
-        input_data=dev_df['sentence'].to_numpy(),
-            targets=dev_df['label'].to_numpy(),
-            tokenizer=tokenizer,
-            max_len=MAX_LEN
-        )
+    # # Creating our train-val-test datasets
+    # train_ds = LlamaDataset(
+    #     input_data=train_df['sentence'].to_numpy(),
+    #         targets=train_df['label'].to_numpy(),
+    #         tokenizer=tokenizer,
+    #         max_len=MAX_LEN
+    #     )
+    # dev_ds = LlamaDataset(
+    #     input_data=dev_df['sentence'].to_numpy(),
+    #         targets=dev_df['label'].to_numpy(),
+    #         tokenizer=tokenizer,
+    #         max_len=MAX_LEN
+    #     )
 
-    test_ds = LlamaDataset(
-        input_data=test_df['sentence'].to_numpy(),
-            targets=test_df['label'].to_numpy(),
-            tokenizer=tokenizer,
-            max_len=MAX_LEN
-        )
+    # test_ds = LlamaDataset(
+    #     input_data=test_df['sentence'].to_numpy(),
+    #         targets=test_df['label'].to_numpy(),
+    #         tokenizer=tokenizer,
+    #         max_len=MAX_LEN
+    #     )
+
+    # Convert DataFrames directly to HuggingFace's dataset format
+    train_ds = HF_Dataset.from_pandas(train_df[['sentence', 'label']])
+    dev_ds = HF_Dataset.from_pandas(dev_df[['sentence', 'label']])
+    test_ds = HF_Dataset.from_pandas(test_df[['sentence', 'label']])
+
+    # Tokenize datasets
+    def tokenize_function(examples):
+        return tokenizer(examples['sentence'], truncation=True, padding='max_length', max_length=MAX_LEN)
+
+    train_ds = train_ds.map(tokenize_function, batched=True)
+    dev_ds = dev_ds.map(tokenize_function, batched=True)
+    test_ds = test_ds.map(tokenize_function, batched=True)
 
     data = DatasetDict({
         'train': train_ds,
