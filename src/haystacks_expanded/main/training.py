@@ -29,13 +29,13 @@ import torch
 # from torch.utils.data import Dataset
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 import numpy as np
-from datasets import DatasetDict
-from torch.utils.data import Dataset
+from datasets import Dataset as HF_Dataset, DatasetDict
+# from torch.utils.data import Dataset
 
 from ..utils import get_save_path
 
 # Defining a Dataset object to put our data in
-class LlamaDataset(Dataset):
+class LlamaDataset(HF_Dataset):
     """
     Special dataset class built on top of the torch Dataset class
     useful to have memory efficient dataloading tokenization batching and trainning.
