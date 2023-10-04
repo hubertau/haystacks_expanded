@@ -286,28 +286,34 @@ def consolidate(ctx, file_dir, glob, checkmin, seed):
 @click.option('--outfile', '-o', help='Output File. If none, will save to a file in the same directory as input file.')
 @click.option('--batch-size', '-b', help='Batch of sentences size.', default = 10)
 @click.option('--augment_size', '-s', help='augment size, i.e. the number of sentences to generate per input sentence.', default = 10)
+@click.option('--from-batch', '-fr', help='Which batch to start from', type=int)
 @click.option('--up-to', '-u', help='For debugging purposes. Number of batches to process up to.', type=int)
 @click.option('--overwrite', '-w', help='Whether or not to overwrite existing augmentations.', type=bool, is_flag = True)
 @click.option('--skip-existing', '-e', help='Whether or not to skip existing sentences. If not, then it will extend entreis unless overwrite flag is set.', type=bool, default=True)
+@click.option('--supplement', '-sp', help='JSON output of already existing augmentations to supplement, i.e. to make sure they get up to augment_size number of augmentations')
 def aug(ctx,
         file,
         api_config_file,
         outfile,
         batch_size,
+        from_batch,
         augment_size,
         up_to,
         overwrite,
-        skip_existing
+        skip_existing,
+        supplement
     ):
     utils.api_augment(
         data_to_augment=file,
         api_config_file = api_config_file,
         outfile = outfile,
+        from_batch=from_batch,
         batch_size = batch_size,
         augment_size = augment_size,
         up_to=up_to,
         overwrite=overwrite,
-        skip_existing=skip_existing
+        skip_existing=skip_existing,
+        supplement=supplement
     )
 
 if __name__ == '__main__':

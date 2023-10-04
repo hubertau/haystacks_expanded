@@ -6,8 +6,10 @@ from pathlib import Path
 import os
 from loguru import logger
 import numpy as np
+from itertools import chain
 import json
 import configparser
+import time
 import hashlib
 from collections import defaultdict
 
@@ -120,6 +122,28 @@ def get_save_path(path: str) -> Path:
     raise ValueError(f"Directory {p.parent} does not exist.")
 
 
+def send_instruction(augment_size, sentences):
+
+    # Do Augmentation
+    instruction = textwrap.dedent(f"""You are an advanced AI writer to tasked with data augmentation to help detect check-worthy claims in sentences. Inaccuracies in data are not a problem.
+
+    For each input sentence, Generate {augment_size} additional semantically similar sentences with the following constraints: numbers, percentages, and entities are changed  (e.g., '40%' could be changed to '35%', '45%', etc. - Note that inaccuracies are NOT a problem), and rephrasing is allowed. Changing to a similar topic is also allowed. Ensure there is substantial variety: for example, do not repeat the same company name or a percentage number n times. Input is formatted as [hash]:[original sentence] pairs.
+
+    Format response as a valid json object with double quotes, with hashes of the original sentences as keys and the {augment_size} generated sentences as values. Ensure that each original sentence has {augment_size} generated sentences.""")
+
+    r = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": instruction},
+            {"role": "user", "content": f"Sentences: {sentences}"}
+            ],
+        temperature = 0.8,
+        frequency_penalty = 0.5,
+    )
+
+    return r
+
+
 def api_augment(
         data_to_augment,
         api_config_file,
@@ -129,20 +153,57 @@ def api_augment(
         up_to = None,
         overwrite = False,
         skip_existing = True,
+        from_batch = None,
+        supplement = None
     ):
+    """Create Data Augmentation Using OpenAI API
 
+    Args:
+        data_to_augment (str): csv of hash, sentence, label
+        api_config_file (str): config file with API token.
+        outfile (str, optional): savename for output file. Defaults to None.
+        batch_size (int, optional): Number of sentences to send each time to API. Defaults to 10.
+        augment_size (int, optional): How many sentences to generate for each sentence. Defaults to 10.
+        up_to (int, optional): Process up to this batch number. For debugging. Defaults to None.
+        overwrite (bool, optional): Boolean flag to overwrite existing augmentations. Defaults to False.
+        skip_existing (bool, optional): Skip existing. Defaults to True.
+        from_batch (int, optional): Start from this batch number. Defaults to None.
+        supplement (str, optional): Existing augmentation json file to supplement. Defaults to None.
+
+    Yields:
+        None: Saves data to outfile
+    """
+
+    # Verbose logging
     logger.info('Received Parameters:\n')
     logger.info(f'Data file: {data_to_augment}')
     logger.info(f'API Config File: {api_config_file}')
     logger.info(f'Specified outfile: {outfile}')
     logger.info(f'Batch size: {batch_size}')
     logger.info(f'Augment size: {augment_size}')
+    logger.info(f'Starting from batch number: {from_batch}')
     logger.info(f'(for debug only) number of batches to process up to: {up_to}')
+    logger.info(f'Supplement: {supplement}')
     logger.info(f'Overwrite: {overwrite}')
     logger.info(f'Skip Existing: {skip_existing}')
 
+    if skip_existing and supplement:
+        logger.warning('Supplement and skip_existing cannot both be set to True. Setting skip_existing to False and continuing...')
+        skip_existing=False
+
+    # Get Token and setup API
+    config = configparser.ConfigParser()
+    config.read(api_config_file)
+    token = config['API']['token']
+    openai.api_key = token
+
     # Read in data
     df = pd.read_csv(data_to_augment)
+
+    # if supplement is true, read in existing data
+    if supplement:
+        with open(supplement, 'r') as f:
+            supp_json = json.load(f)
 
     # set output file dir an object name
     if not outfile:
@@ -165,61 +226,98 @@ def api_augment(
         out_dict = defaultdict(list)
 
     # define batch generator
-    def batched_key_value_pairs(df, key_col, value_col, batch_size):
+    def batched_key_value_pairs(df, key_col, value_col, batch_size, supp_size = None):
+        """Generate iterator to feed into API
+
+        Args:
+            df: Dataframe with 'hash', 'label', and 'sentence'
+            key_col (str): column for keys
+            value_col (_type_): column for values
+            batch_size (_type_): size of each output batch
+            supp_size (_type_): how many to supplement for this set of batched outputs
+
+        Yields:
+            tuple: batch_dict, supp_size
+        """
         total_rows = len(df)
 
         for i in range(0, total_rows, batch_size):
             keys = df[key_col].iloc[i:i+batch_size].tolist()
             values = df[value_col].iloc[i:i+batch_size].tolist()
-            yield dict(zip(keys, values))
+            yield dict(zip(keys, values)), supp_size
 
-    # Use the generator
-    filtered_df = df[(df['label'] == 1) & (df['sentence'].apply(len) < 500)]
-    # print(len(filtered_df))
-    input_iterator = batched_key_value_pairs(filtered_df, 'hash', 'sentence', batch_size)
-    num_batches = len(list(input_iterator))
-    input_iterator = batched_key_value_pairs(filtered_df, 'hash', 'sentence', batch_size)
+    # GET INPUT DATA
+    if supplement:
 
-    # get token
-    config = configparser.ConfigParser()
-    config.read(api_config_file)
-    token = config['API']['token']
-    openai.api_key = token
+        # Read in existing augmentations and how many each sentence has
+        existing_ids = defaultdict(list)
+        for k, v in supp_json.items():
+            if len(v) < augment_size:
+                existing_ids[len(v)].append(k)
 
-    # Do Augmentation
-    instruction = textwrap.dedent(f"""You are an advanced AI writer to tasked with data augmentation to help detect check-worthy claims in sentences. Inaccuracies in data are not a problem.
+        gen_to_chain = []
+        num_batches = 0
+        # get iterators for each set of sentences
+        for existing_aug_count, associated_ids in existing_ids.items():
+            logger.info(f'Creating generators for supplement size {augment_size-existing_aug_count}: {len(associated_ids)} sentences')
+            for_counting = batched_key_value_pairs(
+                df = df[df['hash'].isin(associated_ids)],
+                key_col='hash',
+                value_col='sentence',
+                batch_size=batch_size,
+                supp_size=augment_size-existing_aug_count
+            )
+            num_batches += len(list(for_counting))
+            gen_to_chain.append(batched_key_value_pairs(
+                df = df[df['hash'].isin(associated_ids)],
+                key_col='hash',
+                value_col='sentence',
+                batch_size=batch_size,
+                supp_size=augment_size-existing_aug_count
+            ))
 
-    For each input sentence, Generate {augment_size} additional semantically similar sentences with the following constraints: numbers, percentages, and entities are changed  (e.g., '40%' could be changed to '35%', '45%', etc. - Note that inaccuracies are NOT a problem), and rephrasing is allowed. Changing to a similar topic is also allowed. Ensure there is substantial variety: for example, do not repeat the same company name or a percentage number n times. Input is formatted as [hash]:[original sentence] pairs. Format response as a json object, with hashes of the original sentences as keys and the {augment_size} generated sentences as values. Ensure that each original sentence has {augment_size} generated sentences.""")
-    logger.info(f'Instruction: {instruction}')
+        # chain created generators together
+        input_iterator = chain(*gen_to_chain)
+        logger.debug(f'Number of batches: {num_batches}')
+
+    else:
+
+        # Use the generator
+        filtered_df = df[(df['label'] == 1) & (df['sentence'].apply(len) < 500)]
+        # print(len(filtered_df))
+        input_iterator = batched_key_value_pairs(filtered_df, 'hash', 'sentence', batch_size)
+        num_batches = len(list(input_iterator))
+        logger.debug(num_batches)
+        input_iterator = batched_key_value_pairs(filtered_df, 'hash', 'sentence', batch_size)
 
     responses = []
-    for counter, sentences in enumerate(input_iterator):
-        logger.info(f'Processing batch {counter+1} of {num_batches}')
+    for counter, (sentences, ss) in enumerate(input_iterator, start=1):
 
-        # check existing
+        if from_batch and counter < from_batch:
+            continue
+
+        logger.info(f'Processing batch {counter} of {num_batches}')
+
+        # check existing. Note check existing CANNOT be true when we are supplementing, because the whole point is to supplement EXISTING augmentations that do not have enough.
         if skip_existing:
             already_existing = [h in out_dict for h in sentences.keys()]
             if all(already_existing):
-                logger.info(f'All items in batch {counter+1} are already present. Continuing...')
+                logger.info(f'All items in batch {counter} are already present. Continuing...')
                 continue
             elif any(already_existing):
                 logger.info(f'{sum(already_existing)} found to already exist')
             # filter out existing ones
             sentences = {k: v for k, v in sentences.items() if k not in out_dict}
 
-        if up_to and counter >= up_to:
+        if up_to and counter > up_to:
             logger.info(f'Maximum batch number {up_to} reached. Ending...')
             break
-        temp_response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": instruction},
-            {"role": "user", "content": f"Sentences: {sentences}"}
-            ],
-        temperature = 0.8,
-        frequency_penalty = 0.5,
+        to_augment = int(f'{augment_size if not ss else ss}')
+        logger.debug(f'Batch augment instruction is {to_augment}')
+        temp_response = send_instruction(
+            augment_size=to_augment,
+            sentences=sentences
         )
-
         responses.append(temp_response)
 
         for index, choice_element in enumerate(temp_response.choices):
@@ -227,26 +325,27 @@ def api_augment(
                 logger.warning(f"Choice {index} of Completion ID {temp_response.id} finished because of: {choice_element['finish_reason']}")
 
             try:
-                this_response = json.loads(choice_element['message']['content'])
+                this_response = json.loads(choice_element['message']['content'], strict=False)
             except json.decoder.JSONDecodeError as e:
-                logger.error(choice_element['message']['content'])
+                # logger.error(choice_element['message']['content'])
                 logger.error(e)
-                break
-
+                this_response = {}
             for k, v in this_response.items():
-                if len(v) < 10:
-                    logger.warning(f'Sentence {k} had {len(v)} generated sentences')
                 if overwrite and len(out_dict[k]) > 0:
                     out_dict[k] = v
                 else:
                     out_dict[k] = out_dict[k] + v
+                if len(out_dict[k]) < augment_size:
+                    logger.warning(f'Sentence {k} has {len(out_dict[k])} generated sentences, with {len(v)} from this request.')
+
         else:
             with open(outfile, 'w' ) as f:
                 json.dump(out_dict, f)
+            time.sleep(60)
             continue
         break
 
 
 if __name__ == '__main__':
 
-    consolidate_annots('/Users/hubert/Drive/DPhil/Projects/2022-08b-DSF/haystacks_expanded/data/03_processed/annotated', '*annotated.*', 0.4)
+    pass
