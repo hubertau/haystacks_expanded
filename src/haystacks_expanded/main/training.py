@@ -25,7 +25,7 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
 from sklearn.model_selection import train_test_split
 from transformers import (EarlyStoppingCallback, EvalPrediction,
                           GenerationConfig, LlamaForSequenceClassification,
-                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast)
+                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast, AutoTokenizer)
 
 from ..utils import get_save_path
 
@@ -169,7 +169,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
         )
         tokenizer.padding_side = "left"
     elif model_type == 'BERT':
-        tokenizer = BertTokenizerFast.from_pretrained(BASE_MODEL)
+        tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 
     if not outfile:
         logger.info(f'No outfile path specified: saving to same folder as input data')
