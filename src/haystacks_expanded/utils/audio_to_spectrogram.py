@@ -16,9 +16,11 @@ Use the model on your own videos
 """
 
 import subprocess
+
 import librosa
 import numpy as np
 import scipy
+
 
 def extract_audio(input_file, output_file, log_file):
     """ Step 1

@@ -2,9 +2,9 @@
 This script is responsible for the processing of claim detection. It should be modular for the rest of the pipeline.
 '''
 
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from transformers import pipeline
 from loguru import logger
+from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
+                          pipeline)
 
 
 class ClaimDetector:

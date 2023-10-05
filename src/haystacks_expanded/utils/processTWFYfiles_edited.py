@@ -5,13 +5,19 @@ Get all speeches (concatenated utterances) from TheyWorkForYou files and organis
 Output: corpus with units: debateid, motion, motionspeakerid, speech, speechspeakerid, vote
         included: debates with exactly one motion and one division
 """
-import os, glob, re, sys
-from bs4 import BeautifulSoup, Tag, NavigableString
-from collections import OrderedDict
-import csv, json
-from builtins import any as b_any
+import csv
+import glob
+import json
+import os
+import re
 import string
+import sys
+from builtins import any as b_any
+from collections import OrderedDict
+
 import click
+from bs4 import BeautifulSoup, NavigableString, Tag
+
 
 @click.command()
 @click.argument('files_dir')

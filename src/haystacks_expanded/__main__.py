@@ -1,14 +1,16 @@
-import click
-import os
-import json
-from loguru import logger
-from pathlib import Path
-import sys
-import torch
 import configparser
-import pandas as pd
+import json
+import os
+import sys
+from pathlib import Path
 
-from . import utils, main
+import click
+import pandas as pd
+import torch
+from loguru import logger
+
+from . import main, utils
+
 
 @click.group()
 @click.pass_context

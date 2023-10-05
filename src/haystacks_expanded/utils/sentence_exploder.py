@@ -1,10 +1,12 @@
 '''Simple script to take a csv with paragraphs in a column and explode them
 '''
 
-import pandas as pd
-import nltk
-from nltk.tokenize import sent_tokenize
 from pathlib import Path
+
+import nltk
+import pandas as pd
+from nltk.tokenize import sent_tokenize
+
 
 def sent_explode_func(infile):
     infile = Path(infile)

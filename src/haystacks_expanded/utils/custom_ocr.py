@@ -3,22 +3,21 @@ This module offers functionality to OCR the frames of a video, while trying to b
 computationally efficient by ignoring frames that are similar to their adjacent
 frames.
 """
-import cv2 as cv
-import os
-
-import scipy.fft
-from contextlib import contextmanager
-from itertools import tee
-import numpy as np
-import tesserocr
-import pytesseract
-from multiprocessing.pool import ThreadPool
 import multiprocessing
+import os
+from contextlib import contextmanager
+from functools import wraps
+from itertools import tee
+from multiprocessing.pool import ThreadPool
+
+import click
+import cv2 as cv
+import numpy as np
+import pytesseract
+import scipy.fft
+import tesserocr
 import tqdm
 from PIL import Image
-import click
-from functools import wraps
-
 
 IS_CL = False
 FILEPATH_DOC = "Path to the input video file"
