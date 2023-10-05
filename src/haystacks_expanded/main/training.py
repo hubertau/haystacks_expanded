@@ -29,67 +29,65 @@ from transformers import (EarlyStoppingCallback, EvalPrediction,
 
 from ..utils import get_save_path
 
-# from torch.utils.data import Dataset
 
+# # Defining a Dataset object to put our data in
+# class LlamaDataset(HF_Dataset):
+#     """
+#     Special dataset class built on top of the torch Dataset class
+#     useful to have memory efficient dataloading tokenization batching and trainning.
 
-# Defining a Dataset object to put our data in
-class LlamaDataset(HF_Dataset):
-    """
-    Special dataset class built on top of the torch Dataset class
-    useful to have memory efficient dataloading tokenization batching and trainning.
+#     Huggingface can use these types of dataset as inputs and run all trainning/prediction on them.
+#     """
+#     def __init__(self, input_data, targets, tokenizer, max_len):
+#         """
+#         Basic generator function for the class.
+#         -----------------
+#         input_data : array
+#             Numpy array of string  input text to use for downstream task
+#         targets :
+#             Numpy array of integers indexed in  the pytorch style of [0,C-1] with C being the total number of classes
+#             In our example this means the target sentiments should range from 0 to 2.
+#         tokenizer  : Huggingface tokenizer
+#             The huggingface tokenizer to use
+#         max_len :
+#             The truncation length of the tokenizer
+#         -------------------
 
-    Huggingface can use these types of dataset as inputs and run all trainning/prediction on them.
-    """
-    def __init__(self, input_data, targets, tokenizer, max_len):
-        """
-        Basic generator function for the class.
-        -----------------
-        input_data : array
-            Numpy array of string  input text to use for downstream task
-        targets :
-            Numpy array of integers indexed in  the pytorch style of [0,C-1] with C being the total number of classes
-            In our example this means the target sentiments should range from 0 to 2.
-        tokenizer  : Huggingface tokenizer
-            The huggingface tokenizer to use
-        max_len :
-            The truncation length of the tokenizer
-        -------------------
+#         Returns :
 
-        Returns :
+#             Tokenized text with inputs, attentions and labels, ready for the Training script.
+#         """
+#         self.input_data = input_data
+#         self.targets = targets
+#         self.tokenizer = tokenizer
+#         self.max_len = max_len
 
-            Tokenized text with inputs, attentions and labels, ready for the Training script.
-        """
-        self.input_data = input_data
-        self.targets = targets
-        self.tokenizer = tokenizer
-        self.max_len = max_len
+#     def __len__(self):
+#         """
+#         Function required by torch huggingface to batch efficiently
+#         """
+#         return len(self.input_data)
 
-    def __len__(self):
-        """
-        Function required by torch huggingface to batch efficiently
-        """
-        return len(self.input_data)
-
-    def __getitem__(self, item):
-        text = str(self.input_data[item])
-        target = self.targets[item]
-        # only difference with the previuous tokenization step is the encode-plus for special tokens
-        encoding = self.tokenizer.encode_plus(
-          text,
-          add_special_tokens=True,
-          max_length=self.max_len,
-          return_token_type_ids=False,
-          padding='max_length',
-          return_attention_mask=True,
-          return_tensors='pt',
-          truncation = True
-        )
-        return {
-         # 'text': text,
-          'input_ids': encoding['input_ids'].flatten(),
-          'attention_mask': encoding['attention_mask'].flatten(),
-          'labels': torch.tensor(target, dtype=torch.long)
-        }
+#     def __getitem__(self, item):
+#         text = str(self.input_data[item])
+#         target = self.targets[item]
+#         # only difference with the previuous tokenization step is the encode-plus for special tokens
+#         encoding = self.tokenizer.encode_plus(
+#           text,
+#           add_special_tokens=True,
+#           max_length=self.max_len,
+#           return_token_type_ids=False,
+#           padding='max_length',
+#           return_attention_mask=True,
+#           return_tensors='pt',
+#           truncation = True
+#         )
+#         return {
+#          # 'text': text,
+#           'input_ids': encoding['input_ids'].flatten(),
+#           'attention_mask': encoding['attention_mask'].flatten(),
+#           'labels': torch.tensor(target, dtype=torch.long)
+#         }
 
 # define the compute_metrics function
 def compute_metrics(pred):
@@ -222,27 +220,6 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128)
     logger.info(f'Dev set size: {len(dev_df)}')
     logger.info(f'Test set size: {len(test_df)}')
 
-    # # Creating our train-val-test datasets
-    # train_ds = LlamaDataset(
-    #     input_data=train_df['sentence'].to_numpy(),
-    #         targets=train_df['label'].to_numpy(),
-    #         tokenizer=tokenizer,
-    #         max_len=MAX_LEN
-    #     )
-    # dev_ds = LlamaDataset(
-    #     input_data=dev_df['sentence'].to_numpy(),
-    #         targets=dev_df['label'].to_numpy(),
-    #         tokenizer=tokenizer,
-    #         max_len=MAX_LEN
-    #     )
-
-    # test_ds = LlamaDataset(
-    #     input_data=test_df['sentence'].to_numpy(),
-    #         targets=test_df['label'].to_numpy(),
-    #         tokenizer=tokenizer,
-    #         max_len=MAX_LEN
-    #     )
-
     # Convert DataFrames directly to HuggingFace's dataset format
     train_ds = HF_Dataset.from_pandas(train_df[['sentence', 'label']])
     dev_ds = HF_Dataset.from_pandas(dev_df[['sentence', 'label']])
@@ -266,9 +243,9 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128)
 
 def train(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
 
-    data = DatasetDict.load_from_disk(dataset_dict)
+    logger.info(f'base model is {BASE_MODEL}')
 
-    BASE_MODEL = "decapoda-research/llama-2-7b-hf"
+    data = DatasetDict.load_from_disk(dataset_dict)
 
     model = LlamaForSequenceClassification.from_pretrained(
         BASE_MODEL,
@@ -297,7 +274,7 @@ def train(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
     TRAIN_STEPS = 3000
 
     torch.cuda.empty_cache()
-    torch.cuda.is_available()
+    assert torch.cuda.is_available()
 
     model_llama = prepare_model_for_int8_training(model)
     config = LoraConfig(
