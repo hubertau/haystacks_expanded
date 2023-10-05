@@ -351,7 +351,7 @@ def splitdata(ctx, data, base_model, outfile = None, max_len = 128):
 @click.option('--data', '-d', help='Training Data', required=True)
 @click.option('--output-dir', '-o', help='Output Directory', required=True)
 @click.option('--base-model', '-m', help='Base model', required=True)
-def train(data, output_dir, base_model):
+def train(ctx, data, output_dir, base_model):
 
     main.train_model(
         dataset_dict=data,
