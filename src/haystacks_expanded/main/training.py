@@ -241,7 +241,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128)
 
     data.save_to_disk(outfile)
 
-def train(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
+def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
 
     logger.info(f'base model is {BASE_MODEL}')
 

@@ -346,6 +346,19 @@ def splitdata(ctx, data, base_model, outfile = None, max_len = 128):
         MAX_LEN=max_len
     )
 
+@cli.command()
+@click.pass_context
+@cli.option('--data', '-d', help='Training Data', required=True)
+@cli.option('--output-dir', '-o', help='Output Directory', required=True)
+@cli.option('--base-model', '-m', help='Base model', required=True)
+def train(data, output_dir, base_model):
+
+    main.train_model(
+        dataset_dict=data,
+        OUTPUT_DIR=output_dir,
+        BASE_MODEL=base_model
+    )
+
 
 if __name__ == '__main__':
     cli()
