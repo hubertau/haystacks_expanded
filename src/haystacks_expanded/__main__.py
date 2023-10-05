@@ -20,19 +20,19 @@ def cli(ctx, debug, gpu, config_file, log_file):
     """Haystacks with TikTok and Parliament.
 
     """
-    logger.info(f"Debug mode is {'on' if debug else 'off'}")
     if not debug:
         logger.remove()
         logger.add(sys.stderr, level="INFO", backtrace=True, diagnose=True)
     if log_file:
         logger.add(log_file, backtrace=True, diagnose=True)
+    logger.debug(f"Debug mode is {'on' if debug else 'off'}")
 
     # parse configs
     if config_file is None:
         config_file = os.path.join(os.environ['HOME'], '.haystacks_expanded_config')
         if os.path.exists(config_file):
-            logger.info(f'No specific config file provided.')
-            logger.info(f'Using config in home dir: {config_file}')
+            logger.debug(f'No specific config file provided.')
+            logger.debug(f'Using config in home dir: {config_file}')
         else:
             # if no default file exists and one is not provided, we need to create one:
             logger.info('Creating a config file:')
