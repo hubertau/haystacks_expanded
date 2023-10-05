@@ -335,13 +335,15 @@ def combineaug(ctx, original, augmented, outfile):
 @click.pass_context
 @click.option('--data', '-f', help='Data', required=True)
 @click.option('--base_model', '-m', help='Base Model Name', required=True)
+@click.option('--model-type', '-t', help='LLM or BERT', type = click.Choice(['LLM', 'BERT']), default = 'LLM')
 @click.option('--outfile', '-o', help='output', required=True)
 @click.option('--max_len', '-l', help='Max Length')
-def splitdata(ctx, data, base_model, outfile = None, max_len = 128):
+def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 
     main.make_tdt_split(
         combined_orig_aug = data,
         BASE_MODEL=base_model,
+        model_type=model_type,
         outfile=outfile,
         MAX_LEN=max_len
     )

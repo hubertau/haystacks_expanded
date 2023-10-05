@@ -25,7 +25,7 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
 from sklearn.model_selection import train_test_split
 from transformers import (EarlyStoppingCallback, EvalPrediction,
                           GenerationConfig, LlamaForSequenceClassification,
-                          LlamaTokenizer, Trainer, TrainingArguments)
+                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast)
 
 from ..utils import get_save_path
 
@@ -160,13 +160,16 @@ def combine_original_and_aug(original_file, aug_file, outfile = None):
 
     final_df.to_csv(outfile, index=False)
 
-def make_tdt_split(combined_orig_aug, BASE_MODEL, outfile = None, MAX_LEN = 128):
+def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = None, MAX_LEN = 128):
 
-    tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
-    tokenizer.pad_token_id = (
-        0  # unk. we want this to be different from the eos token
-    )
-    tokenizer.padding_side = "left"
+    if model_type == 'LLM':
+        tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
+        tokenizer.pad_token_id = (
+            0  # unk. we want this to be different from the eos token
+        )
+        tokenizer.padding_side = "left"
+    elif model_type == 'BERT':
+        tokenizer = BertTokenizerFast.from_pretrained(BASE_MODEL)
 
     if not outfile:
         logger.info(f'No outfile path specified: saving to same folder as input data')
@@ -253,11 +256,6 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
         torch_dtype=torch.float16,
         device_map="auto",
     )
-    tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
-    tokenizer.pad_token_id = (
-        0  # unk. we want this to be different from the eos token
-    )
-    tokenizer.padding_side = "left"
 
     LORA_R = 4
     LORA_ALPHA = 16
@@ -296,7 +294,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
         max_steps=TRAIN_STEPS,
         learning_rate=LEARNING_RATE,
         fp16=True,
-        num_train_epochs=5,
+        num_train_epochs=10,
         logging_steps=10,
         optim="adamw_torch",
         evaluation_strategy="steps",
@@ -309,11 +307,10 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
         report_to="tensorboard",
         remove_unused_columns=False,
         metric_for_best_model="accuracy",
-        greater_is_better=True,
-        early_stopping_patience=3,
+        greater_is_better=True
     )
 
-    trainer = transformers.Trainer(
+    trainer = Trainer(
         model=model_llama,
         train_dataset=data['train'],
         eval_dataset=data['dev'],
@@ -339,6 +336,65 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
 
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
+
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
+
+    logger.info(f'Running BERT model training')
+    logger.info(f'base model is {BASE_MODEL}')
+
+    data = DatasetDict.load_from_disk(dataset_dict)
+
+    model = BertForSequenceClassification.from_pretrained(
+        BASE_MODEL,
+        torch_dtype=torch.float16,
+        device_map="auto",
+    )
+    # tokenizer = BertTokenizerFast.from_pretrained(BASE_MODEL)
+
+    BATCH_SIZE = 128
+    MICRO_BATCH_SIZE = 4
+    GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
+    LEARNING_RATE = 5e-5
+    TRAIN_STEPS = 3000
+
+    torch.cuda.empty_cache()
+    assert torch.cuda.is_available()
+
+    training_arguments = TrainingArguments(
+        per_device_train_batch_size=MICRO_BATCH_SIZE,
+        per_device_eval_batch_size=MICRO_BATCH_SIZE,
+        gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
+        warmup_steps=100,
+        max_steps=TRAIN_STEPS,
+        learning_rate=LEARNING_RATE,
+        fp16=True,
+        num_train_epochs=5,
+        logging_steps=10,
+        optim="adamw_torch",
+        evaluation_strategy="steps",
+        save_strategy="steps",
+        eval_steps=50,
+        save_steps=50,
+        output_dir=OUTPUT_DIR,
+        save_total_limit=3,
+        load_best_model_at_end=True,
+        report_to="tensorboard",
+        remove_unused_columns=False,
+        metric_for_best_model="accuracy",
+        greater_is_better=True,
+    )
+
+    trainer = Trainer(
+        model=model,
+        train_dataset=data['train'],
+        eval_dataset=data['dev'],
+        args=training_arguments,
+        compute_metrics=compute_metrics,
+        callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
+    )
+
+    trainer.train()
+    trainer.save_model()
 
 if __name__=='__main__':
     pass
