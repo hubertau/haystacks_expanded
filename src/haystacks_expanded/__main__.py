@@ -353,7 +353,7 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 @click.option('--data', '-d', help='Training Data', required=True)
 @click.option('--output-dir', '-o', help='Output Directory', required=True)
 @click.option('--base-model', '-m', help='Base model', required=True)
-@click.option('--model-type', '-tp', help="BERT or LLM", default = LLM, type=click.Choice(['LLM', 'BERT']))
+@click.option('--model-type', '-tp', help="BERT or LLM", default = 'LLM', type=click.Choice(['LLM', 'BERT']))
 def train(ctx, data, model_type, output_dir, base_model):
 
     if model_type == 'LLM':
