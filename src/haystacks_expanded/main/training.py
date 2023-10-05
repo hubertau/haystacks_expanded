@@ -25,7 +25,7 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
 from sklearn.model_selection import train_test_split
 from transformers import (EarlyStoppingCallback, EvalPrediction,
                           GenerationConfig, LlamaForSequenceClassification,
-                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast, AutoTokenizer)
+                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast, AutoTokenizer, AutoModelForSequenceClassification)
 
 from ..utils import get_save_path
 
@@ -344,7 +344,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
 
     data = DatasetDict.load_from_disk(dataset_dict)
 
-    model = BertForSequenceClassification.from_pretrained(
+    model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL,
         torch_dtype=torch.float16,
         device_map="auto",
