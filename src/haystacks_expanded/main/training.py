@@ -270,6 +270,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         torch_dtype=torch.float16,
         device_map="auto",
     )
+    model.config.pad_token_id = 0
 
     LORA_R = 4
     LORA_ALPHA = 16
@@ -297,6 +298,17 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         task_type="SequenceClassification",
     )
     model_llama = get_peft_model(model_llama, config)
+    # get parameter efficient fine tuning representation of our model
+    model_llama.config.use_cache = False
+    old_state_dict = model_llama.state_dict
+    model_llama.state_dict = (
+        lambda self, *_, **__: get_peft_model_state_dict(
+            self, old_state_dict()
+        )
+    ).__get__(model_llama, type(model_llama))
+
+    # compiling the model ahead of running it
+    
     model_llama.print_trainable_parameters()
 
     training_arguments = TrainingArguments(
@@ -323,6 +335,8 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         greater_is_better=True
     )
 
+    # model_llama = torch.compile(model_llama)
+
     trainer = Trainer(
         model=model_llama,
         train_dataset=data['train'],
@@ -331,20 +345,6 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         compute_metrics=compute_metrics,
         callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
-
-    # get parameter efficient fine tuning representation of our model
-    model_llama.config.use_cache = False
-    old_state_dict = model_llama.state_dict
-    model_llama.state_dict = (
-        lambda self, *_, **__: get_peft_model_state_dict(
-            self, old_state_dict()
-        )
-    ).__get__(model_llama, type(model_llama))
-
-    # compiling the model ahead of running it
-    model_llama = torch.compile(model_llama)
-
-    model.config.pad_token_id = 0
 
     with torch.autocast("cuda"):
         trainer.train()
