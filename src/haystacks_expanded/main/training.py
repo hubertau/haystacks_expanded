@@ -166,8 +166,9 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
     if model_type == 'LLM':
         tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
         # tokenizer.pad_token_id = (
-        #     0  # unk. we want this to be different from the eos token
+            # 0  # unk. we want this to be different from the eos token
         # )
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         # tokenizer.padding_side = "left"
     elif model_type == 'BERT':
         tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
