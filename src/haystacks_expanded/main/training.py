@@ -332,7 +332,8 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         report_to="tensorboard",
         remove_unused_columns=False,
         metric_for_best_model="accuracy",
-        greater_is_better=True
+        greater_is_better=True,
+        label_names=['label']
     )
 
     # model_llama = torch.compile(model_llama)
