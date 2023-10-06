@@ -27,8 +27,7 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
 from sklearn.model_selection import train_test_split
 from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                           BertForSequenceClassification, BertTokenizerFast,
-                          EarlyStoppingCallback, EvalPrediction,
-                          GenerationConfig, LlamaForSequenceClassification,
+                          EarlyStoppingCallback, BitsAndBytesConfig, EvalPrediction, GenerationConfig, LlamaForSequenceClassification,
                           LlamaTokenizer, Trainer, TrainingArguments)
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
