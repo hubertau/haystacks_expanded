@@ -249,9 +249,9 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
     train_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
     train_ds = train_ds.rename_column('label', 'labels')
     dev_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
-    dev_ds = train_ds.rename_column('label', 'labels')
+    dev_ds = dev_ds.rename_column('label', 'labels')
     test_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
-    test_ds = train_ds.rename_column('label', 'labels')
+    test_ds = test_ds.rename_column('label', 'labels')
 
     data = DatasetDict({
         'train': train_ds,
