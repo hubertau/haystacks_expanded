@@ -407,7 +407,8 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16)
         callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
 
-    trainer.train()
+    with torch.autocast("cuda"):
+        trainer.train()
     trainer.save_model()
 
 if __name__=='__main__':
