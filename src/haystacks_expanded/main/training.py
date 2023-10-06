@@ -1,4 +1,6 @@
 import json
+import os
+import warnings
 from pathlib import Path
 from typing import List
 
@@ -15,7 +17,7 @@ from datasets import Dataset as HF_Dataset
 from datasets import DatasetDict, load_dataset
 from loguru import logger
 from peft import (LoraConfig, get_peft_model, get_peft_model_state_dict,
-                  prepare_model_for_int8_training, prepare_model_for_kbit_training)
+                  prepare_model_for_kbit_training)
 from pylab import rcParams
 from sentence_transformers import SentenceTransformer
 # from torch.utils.data import Dataset
@@ -28,6 +30,11 @@ from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                           EarlyStoppingCallback, EvalPrediction,
                           GenerationConfig, LlamaForSequenceClassification,
                           LlamaTokenizer, Trainer, TrainingArguments)
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
+# Filter out the specific warning
+warnings.filterwarnings("ignore", message="Some weights of the model were not initialized from the model checkpoint")
 
 from ..utils import get_save_path
 
@@ -251,7 +258,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
 
     data.save_to_disk(outfile)
 
-def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
+def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
 
     logger.info(f'base model is {BASE_MODEL}')
 
@@ -272,9 +279,8 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
         "v_proj",
     ]
 
-    BATCH_SIZE = 128
     MICRO_BATCH_SIZE = 4
-    GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
+    GRADIENT_ACCUMULATION_STEPS = batch_size // MICRO_BATCH_SIZE
     LEARNING_RATE = 5e-5
     TRAIN_STEPS = 3000
 
@@ -338,7 +344,10 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
     # compiling the model ahead of running it
     model_llama = torch.compile(model_llama)
 
-    trainer.train()
+    model.config.pad_token_id = 0
+
+    with torch.autocast("cuda"):
+        trainer.train()
     trainer.save_model()
 
     # If you want to evaluate the trainer run the code below
