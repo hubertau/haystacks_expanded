@@ -238,6 +238,10 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
     dev_ds = dev_ds.map(tokenize_function, batched=True)
     test_ds = test_ds.map(tokenize_function, batched=True)
 
+    train_ds.set_format(type='torch', columns=['input_ids', 'label'])
+    dev_ds.set_format(type='torch', columns=['input_ids', 'label'])
+    test_ds.set_format(type='torch', columns=['input_ids', 'label'])
+
     data = DatasetDict({
         'train': train_ds,
         'dev': dev_ds,
