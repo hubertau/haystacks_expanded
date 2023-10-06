@@ -232,7 +232,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
 
     # Tokenize datasets
     def tokenize_function(examples):
-        return tokenizer(examples['sentence'], truncation=True, padding='max_length', max_length=MAX_LEN)
+        return tokenizer(examples['sentence'], truncation=True, padding='max_length', max_length=MAX_LEN, return_tensors='pt')
 
     train_ds = train_ds.map(tokenize_function, batched=True)
     dev_ds = dev_ds.map(tokenize_function, batched=True)
@@ -349,7 +349,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
     model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL,
         torch_dtype=torch.float16,
-        device_map="auto",
+        device_map="cuda",
     )
     # tokenizer = BertTokenizerFast.from_pretrained(BASE_MODEL)
 
