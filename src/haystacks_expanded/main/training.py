@@ -161,6 +161,7 @@ def combine_original_and_aug(original_file, aug_file, outfile = None):
     final_df.to_csv(outfile, index=False)
 
 def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = None, MAX_LEN = 128):
+    logger.debug(f'max length is set to {MAX_LEN}')
 
     if model_type == 'LLM':
         tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
