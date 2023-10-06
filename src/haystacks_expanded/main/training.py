@@ -353,7 +353,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
 
-def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
 
     logger.info(f'Running BERT model training')
     logger.info(f'base model is {BASE_MODEL}')
@@ -365,11 +365,9 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
         torch_dtype=torch.float16,
         device_map="cuda",
     )
-    # tokenizer = BertTokenizerFast.from_pretrained(BASE_MODEL)
 
-    BATCH_SIZE = 128
     MICRO_BATCH_SIZE = 4
-    GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
+    GRADIENT_ACCUMULATION_STEPS = batch_size // MICRO_BATCH_SIZE
     LEARNING_RATE = 5e-5
     TRAIN_STEPS = 3000
 
