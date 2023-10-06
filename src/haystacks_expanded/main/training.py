@@ -363,7 +363,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16)
 
     model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL,
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         device_map="cuda",
     )
 
@@ -382,7 +382,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16)
         warmup_steps=100,
         max_steps=TRAIN_STEPS,
         learning_rate=LEARNING_RATE,
-        fp16=True,
+        # fp16=True,
         num_train_epochs=5,
         logging_steps=10,
         optim="adamw_torch",
