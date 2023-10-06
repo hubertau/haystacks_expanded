@@ -3,8 +3,7 @@ This script is responsible for the processing of claim detection. It should be m
 '''
 
 from loguru import logger
-from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
-                          pipeline)
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
 
 class ClaimDetector:
