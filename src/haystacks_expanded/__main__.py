@@ -361,13 +361,15 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size):
         main.train_model(
             dataset_dict=data,
             OUTPUT_DIR=output_dir,
-            BASE_MODEL=base_model
+            BASE_MODEL=base_model,
+            batch_size=batch_size
         )
     elif model_type == 'BERT':
         main.train_bert_model(
             dataset_dict=data,
             OUTPUT_DIR=output_dir,
-            BASE_MODEL=base_model
+            BASE_MODEL=base_model,
+            batch_size=batch_size
         )
 
 
