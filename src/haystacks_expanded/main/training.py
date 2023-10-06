@@ -15,7 +15,7 @@ from datasets import Dataset as HF_Dataset
 from datasets import DatasetDict, load_dataset
 from loguru import logger
 from peft import (LoraConfig, get_peft_model, get_peft_model_state_dict,
-                  prepare_model_for_int8_training)
+                  prepare_model_for_int8_training, prepare_model_for_kbit_training)
 from pylab import rcParams
 from sentence_transformers import SentenceTransformer
 # from torch.utils.data import Dataset
@@ -23,12 +23,13 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
                              precision_recall_fscore_support, precision_score,
                              recall_score, roc_auc_score)
 from sklearn.model_selection import train_test_split
-from transformers import (EarlyStoppingCallback, EvalPrediction,
+from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
+                          BertForSequenceClassification, BertTokenizerFast,
+                          EarlyStoppingCallback, EvalPrediction,
                           GenerationConfig, LlamaForSequenceClassification,
-                          LlamaTokenizer, Trainer, TrainingArguments, BertForSequenceClassification, BertTokenizerFast, AutoTokenizer, AutoModelForSequenceClassification)
+                          LlamaTokenizer, Trainer, TrainingArguments)
 
 from ..utils import get_save_path
-
 
 # # Defining a Dataset object to put our data in
 # class LlamaDataset(HF_Dataset):
@@ -238,9 +239,9 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
     dev_ds = dev_ds.map(tokenize_function, batched=True)
     test_ds = test_ds.map(tokenize_function, batched=True)
 
-    train_ds.set_format(type='torch', columns=['input_ids', 'label'])
-    dev_ds.set_format(type='torch', columns=['input_ids', 'label'])
-    test_ds.set_format(type='torch', columns=['input_ids', 'label'])
+    train_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
+    dev_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
+    test_ds.set_format(type='torch', columns=['input_ids', 'label', 'attention_mask'])
 
     data = DatasetDict({
         'train': train_ds,
@@ -280,7 +281,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None):
     torch.cuda.empty_cache()
     assert torch.cuda.is_available()
 
-    model_llama = prepare_model_for_int8_training(model)
+    model_llama = prepare_model_for_kbit_training(model)
     config = LoraConfig(
         r=LORA_R,
         lora_alpha=LORA_ALPHA,
