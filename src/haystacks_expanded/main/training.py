@@ -340,7 +340,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         # max_steps=TRAIN_STEPS,
         learning_rate=LEARNING_RATE,
         fp16=True,
-        num_train_epochs=10,
+        num_train_epochs=20,
         logging_steps=10,
         optim="adamw_torch",
         evaluation_strategy="steps",
@@ -365,7 +365,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
+        # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
 
     with torch.autocast("cuda"):
@@ -426,7 +426,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16)
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
+        # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
 
     with torch.autocast("cuda"):
