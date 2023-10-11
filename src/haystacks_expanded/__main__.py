@@ -368,7 +368,7 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num
             batch_size=batch_size,
             resume = resume,
             num_train_epochs=num_train_epochs,
-            early_stopping_patience = early_stopping_patience,
+            esp = early_stopping_patience,
         )
     elif model_type == 'BERT':
         main.train_bert_model(
@@ -378,7 +378,7 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num
             batch_size=batch_size,
             resume=resume,
             num_train_epochs=num_train_epochs,
-            early_stopping_patience = early_stopping_patience,
+            esp = early_stopping_patience,
         )
 
 
