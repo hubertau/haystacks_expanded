@@ -360,6 +360,12 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 @click.option('--early-stopping-patience', '-esp', help="Early Stopping Patience", type=int, default=None)
 def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num_train_epochs, early_stopping_patience):
 
+    # Convert input to a boolean if it's "true" or "false"
+    if my_option.lower() == 'true':
+        my_option = True
+    elif my_option.lower() == 'false':
+        my_option = False
+
     if model_type == 'LLM':
         main.train_model(
             dataset_dict=data,
