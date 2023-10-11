@@ -260,7 +260,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
 
     data.save_to_disk(outfile)
 
-def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20):
+def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20, esp = None):
 
     logger.info(f'base model is {BASE_MODEL}')
 
@@ -360,13 +360,17 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
 
     # model_llama = torch.compile(model_llama)
 
+    callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
+    if esp == 0 or esp is None:
+        callbacks = None
+
     trainer = Trainer(
         model=model_llama,
         train_dataset=data['train'],
         eval_dataset=data['dev'],
         args=training_arguments,
-        compute_metrics=compute_metrics
-        # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
+        compute_metrics=compute_metrics,
+        callbacks = callbacks,
     )
 
     with torch.autocast("cuda"):
@@ -376,7 +380,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
 
-def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20):
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20, esp = None):
 
     logger.info(f'Running BERT model training')
     logger.info(f'base model is {BASE_MODEL}')
@@ -421,13 +425,17 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         greater_is_better=True,
     )
 
+    callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
+    if esp == 0 or esp is None:
+        callbacks = None
+
     trainer = Trainer(
         model=model,
         train_dataset=data['train'],
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        callbacks = [EarlyStoppingCallback(early_stopping_patience = 50)]
+        callbacks = callbacks,
     )
 
     with torch.autocast("cuda"):
