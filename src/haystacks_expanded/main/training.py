@@ -364,6 +364,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
     if esp == 0 or esp is None:
         callbacks = None
+        logger.info(f'No callbacks are set')
 
     trainer = Trainer(
         model=model_llama,
@@ -429,6 +430,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
     callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
     if esp == 0 or esp is None:
         callbacks = None
+        logger.info(f'No callbacks are set')
 
     trainer = Trainer(
         model=model,
