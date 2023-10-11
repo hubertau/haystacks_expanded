@@ -427,7 +427,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        resume_from_checkpoint = resume
+        resume_from_checkpoint = resume,
         callbacks = [EarlyStoppingCallback(early_stopping_patience = 50)]
     )
 
