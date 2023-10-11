@@ -378,6 +378,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
 
     with torch.autocast("cuda"):
         trainer.train(resume_from_checkpoint = resume)
+    logger.info(f'Best checkpoint: {trainer.state.best_model_checkpoint}')
     trainer.save_model()
 
     # If you want to evaluate the trainer run the code below
@@ -445,6 +446,8 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
 
     with torch.autocast("cuda"):
         trainer.train(resume_from_checkpoint = resume)
+
+    logger.info(f'Best checkpoint: {trainer.state.best_model_checkpoint}')
     trainer.save_model()
 
 if __name__=='__main__':
