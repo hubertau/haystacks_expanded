@@ -315,7 +315,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     #     )
     # ).__get__(model_llama, type(model_llama))
     config = LoraConfig(
-        r=16,
+        r=4,
         lora_alpha=16,
         target_modules=[
             "q_proj",
@@ -326,9 +326,10 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
             "gate_proj",
             "v_proj"
         ],
-        lora_dropout=0.1,
+        lora_dropout=0.05,
         bias="none",
-        modules_to_save=["classifier"],
+        # modules_to_save=["classifier"],
+        task_type="SEQ_CLS"
     )
     model = prepare_model_for_kbit_training(model)
     model_llama = get_peft_model(model, config)
