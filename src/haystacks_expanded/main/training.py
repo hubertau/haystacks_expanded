@@ -260,7 +260,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
 
     data.save_to_disk(outfile)
 
-def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
+def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True):
 
     logger.info(f'base model is {BASE_MODEL}')
 
@@ -365,6 +365,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
+        resume_from_checkpoint = resume
         # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
 
@@ -375,7 +376,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
 
-def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16):
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True):
 
     logger.info(f'Running BERT model training')
     logger.info(f'base model is {BASE_MODEL}')
@@ -426,7 +427,8 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16)
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
+        resume_from_checkpoint = resume
+        callbacks = [EarlyStoppingCallback(early_stopping_patience = 50)]
     )
 
     with torch.autocast("cuda"):
