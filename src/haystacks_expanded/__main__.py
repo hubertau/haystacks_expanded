@@ -358,7 +358,8 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 @click.option('--resume', '-r', help="Resume from checkpoint")
 @click.option('--num-train-epochs', '-e', help='Max num of epochs', type=int, default=20)
 @click.option('--early-stopping-patience', '-esp', help="Early Stopping Patience", type=int, default=None)
-def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num_train_epochs, early_stopping_patience):
+@click.option('--savelim', '-sl', help="save limit", type=int, default=10)
+def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num_train_epochs, early_stopping_patience, savelim):
 
     # Convert input to a boolean if it's "true" or "false"
     if resume.lower() == 'true':
@@ -375,6 +376,7 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num
             resume = resume,
             num_train_epochs=num_train_epochs,
             esp = early_stopping_patience,
+            savelim=savelim,
         )
     elif model_type == 'BERT':
         main.train_bert_model(
@@ -385,6 +387,7 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num
             resume=resume,
             num_train_epochs=num_train_epochs,
             esp = early_stopping_patience,
+            savelim=savelim,
         )
 
 
