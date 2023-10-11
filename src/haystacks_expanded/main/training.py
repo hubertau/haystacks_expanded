@@ -364,13 +364,12 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
         train_dataset=data['train'],
         eval_dataset=data['dev'],
         args=training_arguments,
-        compute_metrics=compute_metrics,
-        resume_from_checkpoint = resume
+        compute_metrics=compute_metrics
         # callbacks = [EarlyStoppingCallback(early_stopping_patience = 10)]
     )
 
     with torch.autocast("cuda"):
-        trainer.train()
+        trainer.train(resume_from_checkpoint = resume)
     trainer.save_model()
 
     # If you want to evaluate the trainer run the code below
@@ -427,12 +426,11 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         eval_dataset=data['dev'],
         args=training_arguments,
         compute_metrics=compute_metrics,
-        resume_from_checkpoint = resume,
         callbacks = [EarlyStoppingCallback(early_stopping_patience = 50)]
     )
 
     with torch.autocast("cuda"):
-        trainer.train()
+        trainer.train(resume_from_checkpoint = resume)
     trainer.save_model()
 
 if __name__=='__main__':
