@@ -260,7 +260,7 @@ def make_tdt_split(combined_orig_aug, BASE_MODEL, model_type = 'LLM', outfile = 
 
     data.save_to_disk(outfile)
 
-def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True):
+def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20):
 
     logger.info(f'base model is {BASE_MODEL}')
 
@@ -330,6 +330,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
         bias="none",
         modules_to_save=["classifier"],
     )
+    model = prepare_model_for_kbit_training(model)
     model_llama = get_peft_model(model, config)
 
     training_arguments = TrainingArguments(
@@ -340,7 +341,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
         # max_steps=TRAIN_STEPS,
         learning_rate=LEARNING_RATE,
         fp16=True,
-        num_train_epochs=20,
+        num_train_epochs=num_train_epochs,
         logging_steps=10,
         optim="adamw_torch",
         evaluation_strategy="steps",
@@ -375,7 +376,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
 
-def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True):
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20):
 
     logger.info(f'Running BERT model training')
     logger.info(f'base model is {BASE_MODEL}')
@@ -404,7 +405,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         # max_steps=TRAIN_STEPS,
         learning_rate=LEARNING_RATE,
         # fp16=True,
-        num_train_epochs=5,
+        num_train_epochs=num_train_epochs,
         logging_steps=10,
         optim="adamw_torch",
         evaluation_strategy="steps",
@@ -412,7 +413,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         eval_steps=50,
         save_steps=50,
         output_dir=OUTPUT_DIR,
-        save_total_limit=3,
+        save_total_limit=5,
         load_best_model_at_end=True,
         report_to="tensorboard",
         remove_unused_columns=False,

@@ -356,7 +356,8 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 @click.option('--batch-size', '-b', help='Batch size', default=16)
 @click.option('--model-type', '-tp', help="BERT or LLM", default = 'LLM', type=click.Choice(['LLM', 'BERT']))
 @click.option('--resume', '-r', help="Resume from checkpoint", type=bool, default=True)
-def train(ctx, data, model_type, output_dir, base_model, batch_size, resume):
+@click.option('--num-train-epochs', '-e', help='Max num of epochs', type=int, default=20)
+def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num_train_epochs):
 
     if model_type == 'LLM':
         main.train_model(
@@ -364,7 +365,8 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume):
             OUTPUT_DIR=output_dir,
             BASE_MODEL=base_model,
             batch_size=batch_size,
-            resume = resume
+            resume = resume,
+            num_train_epochs=num_train_epochs,
         )
     elif model_type == 'BERT':
         main.train_bert_model(
@@ -372,7 +374,8 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume):
             OUTPUT_DIR=output_dir,
             BASE_MODEL=base_model,
             batch_size=batch_size,
-            resume=resume
+            resume=resume,
+            num_train_epochs=num_train_epochs,
         )
 
 
