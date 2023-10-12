@@ -187,6 +187,7 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextra
 @click.pass_context
 @click.argument('infile')
 def explode(ctx, infile):
+    '''Explode paragraphs into sentences'''
     utils.sent_explode_func(infile)
 
 @cli.command()
@@ -273,6 +274,8 @@ def detect(ctx,
 @click.option('checkmin', '-c', help='Chceck-worthy Factual Score Minimum', default = 0.4)
 @click.option('seed', '-s', help='random seed', default = 1)
 def consolidate(ctx, file_dir, glob, checkmin, seed):
+    '''Consolidate Manual Annotations into Dataset
+    '''
 
     utils.consolidate_annots(
         file_dir=file_dir,
@@ -305,6 +308,8 @@ def aug(ctx,
         skip_existing,
         supplement
     ):
+    '''Augmenting data through OpenAI API
+    '''
     utils.api_augment(
         data_to_augment=file,
         api_config_file = api_config_file,
@@ -324,6 +329,8 @@ def aug(ctx,
 @click.option('--augmented', '-a', help='JSON file of augmented data', required=True)
 @click.option('--outfile', '-o', help='Outfile')
 def combineaug(ctx, original, augmented, outfile):
+    '''Combine Data Augmentations with Original Data
+    '''
 
     main.combine_original_and_aug(
         original_file=original,
@@ -339,6 +346,8 @@ def combineaug(ctx, original, augmented, outfile):
 @click.option('--outfile', '-o', help='output', required=True)
 @click.option('--max_len', '-l', help='Max Length', default=128, type=int)
 def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
+    '''Split data into train, dev, and test for training
+    '''
 
     main.make_tdt_split(
         combined_orig_aug = data,
@@ -360,6 +369,8 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
 @click.option('--early-stopping-patience', '-esp', help="Early Stopping Patience", type=int, default=None)
 @click.option('--savelim', '-sl', help="save limit", type=int, default=10)
 def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num_train_epochs, early_stopping_patience, savelim):
+    '''Model training
+    '''
 
     # Convert input to a boolean if it's "true" or "false"
     if resume.lower() == 'true':
