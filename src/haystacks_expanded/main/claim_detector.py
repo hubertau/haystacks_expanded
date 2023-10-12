@@ -24,6 +24,8 @@ class ClaimDetector:
 
         self.model.config.id2label = {v: k for k, v in self.model.config.label2id.items()}
 
+        self.model.config.temperature=0
+
         self.id2label = self.model.config.id2label
 
     def __call__(self, sentences):
