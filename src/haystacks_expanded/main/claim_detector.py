@@ -1,35 +1,43 @@
-'''
-This script is responsible for the processing of claim detection. It should be modular for the rest of the pipeline.
-'''
-
 from loguru import logger
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
-
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
 
 class ClaimDetector:
 
-    def __init__(self, pipeline):
-        self.pipeline = pipeline
+    def __init__(self, model_name, tok_name = None, short_name = None, device='cpu'):
+        if tok_name is None:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
+        self.device = device
 
-    @classmethod
-    def from_transformers(cls, model = "Nithiwat/mdeberta-v3-base_claimbuster", device='cpu'):
-        #Nithiwat/mdeberta-v3-base_claimbuster
-        #sschellhammer/SciTweets_SciBert
+        # Check if label2id and id2label are set, if not, set default values
+        if not hasattr(self.model.config, "label2id") or not self.model.config.label2id:
+            logger.info(f'No id2label found. Setting default...')
+            self.model.config.label2id = {
+                "Not Checkworthy": 0,
+                "Checkworthy": 1
+            }
+        if short_name is not None:
+            self.model.config.label2id = {f"{short_name}-{k}":v for k, v in self.model.config.label2id.items()}
 
-        pipe = pipeline(
-            task='text-classification',
-            model = model,
-            top_k=None,
-            device=device
-        )
+        self.model.config.id2label = {v: k for k, v in self.model.config.label2id.items()}
 
-        return ClaimDetector(pipe)
+        self.id2label = self.model.config.id2label
 
-    def __call__(self, *args, **kwargs):
-        return self.pipeline(*args, **kwargs)
+    def __call__(self, sentences):
+        inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
+        inputs = {key: val.to(self.device) for key, val in inputs.items()}
+        with torch.no_grad():
+            logits = self.model(**inputs).logits
+        probs = logits.softmax(dim=1)
 
-    def detect(self, video_feature_directory):
-        pass
+        results = []
+        for prob in probs:
+            results.append([{'label': self.id2label[idx], 'score': score.item()} for idx, score in enumerate(prob)])
+
+        return results
 
 if __name__ == "__main__":
 
@@ -38,6 +46,5 @@ if __name__ == "__main__":
         'Covid-19 is a virus and not a bacterial disease'
     ]
 
-    test_pipeline = ClaimDetector.from_transformers()
-
-    print(test_pipeline(test_sentences))
+    detector = ClaimDetector(model_name="Nithiwat/mdeberta-v3-base_claimbuster")
+    print(detector(test_sentences))

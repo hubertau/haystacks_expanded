@@ -199,6 +199,7 @@ def explode(ctx, infile):
               help='Name of HuggingFace model to load for claim detection.'
               )
 @click.option('--tokenizer', '-tok', help='Tokenizer to use.')
+@click.option('--short-name', '-s',help='short name for model to identify outputs')
 @click.option('--output', '-o', default=None, help='Filename of output file')
 @click.option('--config', '-c',
               default='concatenated',
@@ -213,6 +214,7 @@ def detect(ctx,
            metadata,
            features_file,
            model,
+           short_name,
            output,
            tokenizer,
            config,
@@ -257,6 +259,7 @@ def detect(ctx,
     detector = main.ClaimDetector.from_transformers(
         model=model,
         tokenizer = tokenizer,
+        short_name=short_name,
         device=ctx.obj['DEVICE']
     )
     claims = detector(infile['sentence'].to_list())
