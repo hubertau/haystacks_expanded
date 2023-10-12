@@ -334,6 +334,12 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     model = prepare_model_for_kbit_training(model)
     model_llama = get_peft_model(model, config)
 
+    # set model id2label
+    model_llama.config.id2label = {
+        0: "Not Checkworthy",
+        1: "Checkworthy"
+    }
+
     training_arguments = TrainingArguments(
         per_device_train_batch_size=MICRO_BATCH_SIZE,
         per_device_eval_batch_size=MICRO_BATCH_SIZE,
@@ -429,6 +435,12 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         metric_for_best_model="accuracy",
         greater_is_better=True,
     )
+
+    # set model id2label
+    model.config.id2label = {
+        0: "Not Checkworthy",
+        1: "Checkworthy"
+    }
 
     callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
     if esp == 0 or esp is None:
