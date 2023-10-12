@@ -194,10 +194,11 @@ def explode(ctx, infile):
 @click.pass_context
 @click.option('--metadata', '-me', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')
 @click.option('--features_file', '-f', help='features csv to read in. Can be omitted if metadata option is provided.')
-@click.option('--model', '-m', 
+@click.option('--model', '-m',
               default='Nithiwat/mdeberta-v3-base_claimbuster',
               help='Name of HuggingFace model to load for claim detection.'
               )
+@click.option('--tokenizer', '-tok', help='Tokenizer to use.')
 @click.option('--output', '-o', default=None, help='Filename of output file')
 @click.option('--config', '-c',
               default='concatenated',
@@ -213,6 +214,7 @@ def detect(ctx,
            features_file,
            model,
            output,
+           tokenizer,
            config,
            overwrite,
            intype
@@ -252,7 +254,11 @@ def detect(ctx,
     infile = pd.read_csv(features_file)
 
     # do detection
-    detector = main.ClaimDetector.from_transformers(model=model, device=ctx.obj['DEVICE'])
+    detector = main.ClaimDetector.from_transformers(
+        model=model,
+        tokenizer = tokenizer,
+        device=ctx.obj['DEVICE']
+    )
     claims = detector(infile['sentence'].to_list())
 
     # collect dataframe of results
