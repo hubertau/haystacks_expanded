@@ -91,6 +91,7 @@ def cli(ctx, debug, gpu, config_file, log_file):
 @click.option('--period', default=None, help='Number of days back to search. Can be provided in queries json. Specifying here will override json value', type=int)
 def search(ctx, query_name, savepath, period):
     """Search TikTok with a prepared query"""
+    from . import utils
 
     with open(ctx.obj['CONFIG']['locations']['queries_json'], 'r') as f:
         queries = json.load(f)
@@ -104,7 +105,7 @@ def search(ctx, query_name, savepath, period):
     else:
         pass
     logger.info(f'Period is set to {period} days')
-
+    
     utils.query(
         query_name,
         queries[query_name]['text'],
