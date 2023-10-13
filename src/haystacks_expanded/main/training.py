@@ -266,6 +266,11 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
 
     data = DatasetDict.load_from_disk(dataset_dict)
 
+    tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
+    tokenizer.pad_token_id = (
+        0  # unk. we want this to be different from the eos token
+    )
+
     model = LlamaForSequenceClassification.from_pretrained(
         BASE_MODEL,
         load_in_8bit=True,
@@ -375,6 +380,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
 
     trainer = Trainer(
         model=model_llama,
+        tokenizer=tokenizer,
         train_dataset=data['train'],
         eval_dataset=data['dev'],
         args=training_arguments,
@@ -397,11 +403,21 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
 
     data = DatasetDict.load_from_disk(dataset_dict)
 
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+
     model = AutoModelForSequenceClassification.from_pretrained(
         BASE_MODEL,
         # torch_dtype=torch.float16,
-        device_map="cuda",
+        device_map="cuda"
     )
+
+    # change num_labels to 2
+    logger.info('Converting num labels to 2')
+    config = model.config
+    config.num_labels = 2
+    model.classifier = torch.nn.Linear(config.hidden_size, config.num_labels)
+    model.num_labels = 2
+    model.config = config
 
     MICRO_BATCH_SIZE = 4
     GRADIENT_ACCUMULATION_STEPS = batch_size // MICRO_BATCH_SIZE
@@ -441,6 +457,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
         0: "Not Checkworthy",
         1: "Checkworthy"
     }
+    logger.info(f'id2label: {model.config.id2label}')
 
     callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
     if esp == 0 or esp is None:
@@ -449,6 +466,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16,
 
     trainer = Trainer(
         model=model,
+        tokenizer=tokenizer,
         train_dataset=data['train'],
         eval_dataset=data['dev'],
         args=training_arguments,
