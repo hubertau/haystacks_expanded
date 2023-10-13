@@ -272,7 +272,7 @@ def detect(ctx,
         logger.info(f'Inferred tokenizer path to be {tokenizer}')
 
     # do detection
-    detector = main.ClaimDetector.from_transformers(
+    detector = main.ClaimDetector(
         model=model,
         tokenizer = tokenizer,
         short_name=short_name,
