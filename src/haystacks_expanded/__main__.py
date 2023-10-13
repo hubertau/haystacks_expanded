@@ -9,8 +9,7 @@ import pandas as pd
 import torch
 from loguru import logger
 
-from . import main, utils
-
+# from . import main, utils
 
 @click.group()
 @click.pass_context
@@ -123,6 +122,7 @@ def search(ctx, query_name, savepath, period):
 def download(ctx, query_result, savepath, overwrite, max_download):
     '''Download videos from a query result'''
 
+    from . import utils
     utils.download(
         query_result,
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if savepath is None else savepath}",
@@ -145,6 +145,7 @@ def comments(ctx, query_result, savepath, overwrite):
     if os.path.isfile(savepath) and not overwrite:
         raise FileExistsError(f'Outfile already exists at {savepath} and overwrite flag is False. Ending.')
 
+    from . import utils
     utils.comment_retrieval(
         query_result,
         savepath,
@@ -166,6 +167,7 @@ def common_options(function):
 def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextract):
     '''Extract features from downloaded videos'''
 
+    from . import utils
     extractor = utils.HaystacksFeatureExtractor(
         f"{ctx.obj['CONFIG']['locations']['raw_data'] if metadata is None else metadata}",
         f"{Path(ctx.obj['CONFIG']['locations']['raw_data']) / 'videos' if video_dir is None else video_dir}",
@@ -188,6 +190,7 @@ def extract(ctx, metadata, video_dir, video_feat_dir, output, overwrite, reextra
 @click.argument('infile')
 def explode(ctx, infile):
     '''Explode paragraphs into sentences'''
+    from . import utils
     utils.sent_explode_func(infile)
 
 @cli.command()
@@ -223,6 +226,10 @@ def detect(ctx,
            ):
     '''Detect claims from extracted features'''
 
+    from datasets import Dataset
+    from torch.utils.data import DataLoader
+    from . import main
+
     if intype == 't':
         # check that one of metadata or features_file is provided
         if metadata is None and features_file is None:
@@ -255,6 +262,14 @@ def detect(ctx,
     # read in file
     infile = pd.read_csv(features_file)
 
+    batch_size = 16 
+    dataset = Dataset.from_pandas(infile)
+    dataloader = DataLoader(dataset['sentence'], batch_size=batch_size, shuffle=False)
+
+    if tokenizer is None and 'checkpoint' in model:
+        tokenizer = str(Path(model).parent())
+        logger.info(f'Inferred tokenizer path to be {tokenizer}')
+
     # do detection
     detector = main.ClaimDetector.from_transformers(
         model=model,
@@ -262,7 +277,11 @@ def detect(ctx,
         short_name=short_name,
         device=ctx.obj['DEVICE']
     )
-    claims = detector(infile['sentence'].to_list())
+    # claims = detector(infile['sentence'].to_list())
+    claims = []
+    for batch in dataloader:
+        batch_results = detector(batch)
+        claims.extend(batch_results)
 
     # collect dataframe of results
     scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])
@@ -285,7 +304,7 @@ def detect(ctx,
 def consolidate(ctx, file_dir, glob, checkmin, seed):
     '''Consolidate Manual Annotations into Dataset
     '''
-
+    from . import utils
     utils.consolidate_annots(
         file_dir=file_dir,
         glob_pattern=glob,
@@ -319,6 +338,7 @@ def aug(ctx,
     ):
     '''Augmenting data through OpenAI API
     '''
+    from . import utils
     utils.api_augment(
         data_to_augment=file,
         api_config_file = api_config_file,
@@ -341,6 +361,7 @@ def combineaug(ctx, original, augmented, outfile):
     '''Combine Data Augmentations with Original Data
     '''
 
+    from . import main
     main.combine_original_and_aug(
         original_file=original,
         aug_file=augmented,
@@ -358,6 +379,7 @@ def splitdata(ctx, data, base_model, model_type, outfile = None, max_len = 128):
     '''Split data into train, dev, and test for training
     '''
 
+    from . import main
     main.make_tdt_split(
         combined_orig_aug = data,
         BASE_MODEL=base_model,
@@ -381,6 +403,7 @@ def train(ctx, data, model_type, output_dir, base_model, batch_size, resume, num
     '''Model training
     '''
 
+    from . import main
     # Convert input to a boolean if it's "true" or "false"
     if resume.lower() == 'true':
         resume = True
