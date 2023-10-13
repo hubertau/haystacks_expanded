@@ -274,7 +274,7 @@ def detect(ctx,
     # do detection
     detector = main.ClaimDetector(
         model,
-        tokenizer = tokenizer,
+        tok_name = tokenizer,
         short_name=short_name,
         device=ctx.obj['DEVICE']
     )
