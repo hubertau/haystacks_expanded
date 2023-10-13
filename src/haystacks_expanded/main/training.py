@@ -396,7 +396,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     # If you want to evaluate the trainer run the code below
     # predictions = trainer.predict(data['test'])
 
-def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resume = True, num_train_epochs=20, esp = None, savelim=10):
+def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=64, resume = True, num_train_epochs=20, esp = None, savelim=10):
 
     logger.info(f'Running BERT model training')
     logger.info(f'base model is {BASE_MODEL}')
