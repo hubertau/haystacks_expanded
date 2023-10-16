@@ -28,7 +28,7 @@ from sklearn.model_selection import train_test_split
 from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                           BertForSequenceClassification, BertTokenizerFast,
                           EarlyStoppingCallback, BitsAndBytesConfig, EvalPrediction, GenerationConfig, LlamaForSequenceClassification,
-                          LlamaTokenizer, Trainer, TrainingArguments)
+                          LlamaTokenizer, Trainer, TrainingArguments, TrainerCallback, TrainerState, TrainerControl)
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -95,6 +95,19 @@ from ..utils import get_save_path
 #           'attention_mask': encoding['attention_mask'].flatten(),
 #           'labels': torch.tensor(target, dtype=torch.long)
 #         }
+
+class SaveScoreCallback(TrainerCallback):  
+    def __init__(self, model) -> None:
+        super().__init__()
+        self.model = model
+
+    def on_save(self, 
+                args: TrainingArguments, 
+                state: TrainerState,
+                control: TrainerControl,
+                **kwargs ):
+        fname = f"{args.output_dir}/checkpoint-{state.global_step}/score.original_module.pt"
+        torch.save(self.model.model.score.original_module.state_dict(), fname)
 
 # define the compute_metrics function
 def compute_metrics(pred):
@@ -333,7 +346,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
         ],
         lora_dropout=0.05,
         bias="none",
-        # modules_to_save=["classifier"],
+        modules_to_save=["score"],
         task_type="SEQ_CLS"
     )
     model = prepare_model_for_kbit_training(model)
@@ -372,11 +385,13 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     )
 
     # model_llama = torch.compile(model_llama)
+    callbacks = [SaveScoreCallback(model_llama)]
 
-    callbacks = [EarlyStoppingCallback(early_stopping_patience = esp)]
     if esp == 0 or esp is None:
-        callbacks = None
-        logger.info(f'No callbacks are set')
+        pass
+    else:
+        callbacks.append([EarlyStoppingCallback(early_stopping_patience = esp)])
+    logger.info(f'CALLBACKS ARE: {callbacks}')
 
     trainer = Trainer(
         model=model_llama,
@@ -391,6 +406,9 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     with torch.autocast("cuda"):
         trainer.train(resume_from_checkpoint = resume)
     logger.info(f'Best checkpoint: {trainer.state.best_model_checkpoint}')
+    logger.info('Saving Tokenizer...')
+    tokenizer.save_pretrained(OUTPUT_DIR)
+    logger.info('Saving model...')
     trainer.save_model()
 
     # If you want to evaluate the trainer run the code below
