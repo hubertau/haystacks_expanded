@@ -390,7 +390,7 @@ def train_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=16, resu
     if esp == 0 or esp is None:
         pass
     else:
-        callbacks.append([EarlyStoppingCallback(early_stopping_patience = esp)])
+        callbacks.append(EarlyStoppingCallback(early_stopping_patience = esp))
     logger.info(f'CALLBACKS ARE: {callbacks}')
 
     trainer = Trainer(
