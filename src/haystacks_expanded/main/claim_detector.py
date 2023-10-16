@@ -9,7 +9,7 @@ class ClaimDetector:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, **kwargs).to(device)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, **kwargs)
         self.device = device
 
         # Check if label2id and id2label are set, if not, set default values
