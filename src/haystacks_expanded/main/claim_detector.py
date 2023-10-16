@@ -4,12 +4,12 @@ import torch
 
 class ClaimDetector:
 
-    def __init__(self, model_name, tok_name = None, short_name = None, device='cpu'):
+    def __init__(self, model_name, tok_name = None, short_name = None, device='cpu', **kwargs):
         if tok_name is None:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(device)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, **kwargs).to(device)
         self.device = device
 
         # Check if label2id and id2label are set, if not, set default values
