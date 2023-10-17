@@ -24,7 +24,7 @@ class ClaimDetector:
 
         # Check if label2id and id2label are set, if not, set default values
         if not hasattr(self.model.config, "label2id") or not self.model.config.label2id:
-            logger.info(f'No id2label found. Setting default...')
+            logger.info(f'No label2id found. Setting default...')
             self.model.config.label2id = {
                 "Not Checkworthy": 0,
                 "Checkworthy": 1
@@ -38,7 +38,7 @@ class ClaimDetector:
 
         self.id2label = self.model.config.id2label
 
-        logger.debug(self.model.label2id)
+        logger.debug(self.model.config.label2id)
 
     def __call__(self, sentences):
         inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
