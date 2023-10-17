@@ -42,7 +42,7 @@ class ClaimDetector:
         inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
         logger.debug(type(inputs))
         logger.debug(inputs)
-        inputs = {key: val.to(self.device) for key, val in inputs.items()}
+        # inputs = {key: val.to(self.device) for key, val in inputs.items()}
         with torch.no_grad():
             logits = self.model(**inputs).logits
         probs = logits.softmax(dim=1)
