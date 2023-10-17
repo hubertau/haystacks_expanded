@@ -211,6 +211,7 @@ def explode(ctx, infile):
               help='Configuration for which features to use in detection.',
               type=click.Choice(['concatenated']))
 @click.option('--overwrite', type=bool, default=False, is_flag=True)
+@click.option('--extend/--no-extend', default=True)
 @click.option('--intype', '-t', type=click.Choice(['p', # parliamentary debates
                                                    'q', # oral/written questions
                                                    't', # titktok videos
@@ -224,6 +225,7 @@ def detect(ctx,
            output,
            tokenizer,
            config,
+           extend,
            overwrite,
            intype
            ):
@@ -258,7 +260,7 @@ def detect(ctx,
     logger.info(f'Output file set to {output}')
 
     # if output is existing and overwrite is not set, do nothing.
-    if os.path.isfile(output) and not overwrite:
+    if os.path.isfile(output) and not overwrite and not extend:
         logger.info(f'{output} file already exists and overwrite flag is not set. Ending.')
         return None
 
