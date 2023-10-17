@@ -420,7 +420,7 @@ def train_bert_model(dataset_dict, OUTPUT_DIR, BASE_MODEL = None, batch_size=64,
     logger.info(f'base model is {BASE_MODEL}')
     logger.info(f'Max Epochs: {num_train_epochs}')
     logger.info(f'ESP: {esp}')
-    logger.info(f'Data: {data}')
+    logger.info(f'Data: {dataset_dict}')
 
     data = DatasetDict.load_from_disk(dataset_dict)
 
