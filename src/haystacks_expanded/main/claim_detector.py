@@ -40,8 +40,8 @@ class ClaimDetector:
 
     def __call__(self, sentences):
         inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
-        logger.debug(type(inputs))
-        logger.debug(inputs)
+        # logger.debug(type(inputs))
+        # logger.debug(inputs)
         if isinstance(self.device, dict):
             to_dev = 'cuda'
         else:
