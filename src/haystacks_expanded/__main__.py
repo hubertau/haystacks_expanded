@@ -198,6 +198,7 @@ def explode(ctx, infile):
 @click.pass_context
 @click.option('--metadata', '-me', default=None, help='Directory where video metadata is kept. Alternatively, this can point to a specific query json result whose videos need to be processed.')
 @click.option('--features_file', '-f', help='features csv to read in. Can be omitted if metadata option is provided.')
+@click.option('--modeltype', default='LLM', type=click.Choice(['LLM', 'BERT']))
 @click.option('--model', '-m',
               default='Nithiwat/mdeberta-v3-base_claimbuster',
               help='Name of HuggingFace model to load for claim detection.'
@@ -216,6 +217,7 @@ def explode(ctx, infile):
                                                    ]), default = 't')
 def detect(ctx,
            metadata,
+           modeltype,
            features_file,
            model,
            short_name,
@@ -276,7 +278,8 @@ def detect(ctx,
         model,
         tok_name = tokenizer,
         short_name=short_name,
-        device=ctx.obj['DEVICE']
+        modeltype=modeltype,
+        device={'':0}
     )
     # claims = detector(infile['sentence'].to_list())
     claims = []

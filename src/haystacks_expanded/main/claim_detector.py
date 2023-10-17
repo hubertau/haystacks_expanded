@@ -1,15 +1,25 @@
 from loguru import logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
+import os
 
 class ClaimDetector:
 
-    def __init__(self, model_name, tok_name = None, short_name = None, device='cpu', **kwargs):
+    def __init__(self, model_name, tok_name = None, modeltype='LLM', short_name = None, device='cpu', **kwargs):
         if tok_name is None:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, **kwargs)
+        if modeltype == 'LLM':
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, load_in_8bit=True, **kwargs)
+            self.model.config.pad_token_id = 0
+            self.tokenizer.pad_token_id = 0
+            if os.path.isfile(model_name / "score.original_module.pt"):
+                score_weights = torch.load(model_name / "score.original_module.pt", map_location='cuda')
+                self.model.score.load_state_dict(score_weights)
+                logger.info(f'Score weights loaded')
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, **kwargs)
         self.device = device
 
         # Check if label2id and id2label are set, if not, set default values
