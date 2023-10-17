@@ -265,7 +265,10 @@ def detect(ctx,
         return None
 
     # read in file
-    infile = pd.read_csv(features_file)
+    if extend and os.path.isfile(output):
+        infile = pd.read_csv(output)
+    else:
+        infile = pd.read_csv(features_file)
 
     batch_size = 16 
     dataset = Dataset.from_pandas(infile)

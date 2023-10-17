@@ -38,6 +38,8 @@ class ClaimDetector:
 
         self.id2label = self.model.config.id2label
 
+        logger.debug(self.model.label2id)
+
     def __call__(self, sentences):
         inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
         # logger.debug(type(inputs))
