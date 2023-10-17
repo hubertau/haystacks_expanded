@@ -14,8 +14,8 @@ class ClaimDetector:
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, load_in_8bit=True, **kwargs)
             self.model.config.pad_token_id = 0
             self.tokenizer.pad_token_id = 0
-            if os.path.isfile(model_name / "score.original_module.pt"):
-                score_weights = torch.load(model_name / "score.original_module.pt", map_location='cuda')
+            if os.path.isfile(f"{model_name}/score.original_module.pt'"):
+                score_weights = torch.load(f"{model_name}/score.original_module.pt", map_location='cuda')
                 self.model.score.load_state_dict(score_weights)
                 logger.info(f'Score weights loaded')
         else:
