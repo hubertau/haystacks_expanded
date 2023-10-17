@@ -274,7 +274,7 @@ def detect(ctx,
     dataset = Dataset.from_pandas(infile)
     dataloader = DataLoader(dataset['sentence'], batch_size=batch_size, shuffle=False)
 
-    if tokenizer is None and 'checkpoint' in model:
+    if (tokenizer is None or tokenizer == '') and 'checkpoint' in model:
         tokenizer = str(Path(model).parent)
         logger.info(f'Inferred tokenizer path to be {tokenizer}')
 
