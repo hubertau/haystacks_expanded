@@ -40,6 +40,8 @@ class ClaimDetector:
 
     def __call__(self, sentences):
         inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
+        logger.debug(type(inputs))
+        logger.debug(inputs)
         inputs = {key: val.to(self.device) for key, val in inputs.items()}
         with torch.no_grad():
             logits = self.model(**inputs).logits
