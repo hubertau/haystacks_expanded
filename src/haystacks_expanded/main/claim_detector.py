@@ -72,6 +72,7 @@ class ClaimDetector:
 
         results = []
         for batch in dataloader:
+            logger.debug(batch)
             inputs = {key: val.to(to_dev) for key, val in batch.items() if key in ['input_ids', 'attention_mask']}
             with torch.no_grad():
                 logits = self.model(**inputs).logits
