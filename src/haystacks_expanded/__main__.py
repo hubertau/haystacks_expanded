@@ -292,7 +292,7 @@ def detect(ctx,
         # batch_results = detector(batch)
         # claims.extend(batch_results)
 
-    claims = detector(dataset['sentence'], batch_size, )
+    claims = detector(dataset, batch_size=batch_size)
 
     # collect dataframe of results
     scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])

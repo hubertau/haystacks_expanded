@@ -42,12 +42,17 @@ class ClaimDetector:
 
         logger.debug(self.model.config.label2id)
 
-    def __call__(self, sentences, batch_size=32):
-        tokenized_sentences = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True, max_length=128)
-        input_ids = torch.tensor(tokenized_sentences['input_ids'])
-        attention_mask = torch.tensor(tokenized_sentences['attention_mask'])
-        dataset = TensorDataset(input_ids, attention_mask)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    def __call__(self, dataset, batch_size=32):
+        # Tokenize the sentences
+        def tokenize_function(examples):
+            return self.tokenizer(examples["sentence"], padding="max_length", truncation=True, return_tensors='pt', max_length=128)
+
+        tokenized_dataset = dataset.map(tokenize_function, batched=True)
+        # tokenized_sentences = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True, max_length=128)
+        # input_ids = torch.tensor(tokenized_sentences['input_ids'])
+        # attention_mask = torch.tensor(tokenized_sentences['attention_mask'])
+        # dataset = TensorDataset(input_ids, attention_mask)
+        dataloader = DataLoader(tokenized_dataset, batch_size=batch_size, shuffle=False)
         if isinstance(self.device, dict):
             to_dev = 'cuda'
         else:
@@ -55,8 +60,7 @@ class ClaimDetector:
 
         results = []
         for batch in dataloader:
-            # inputs = {key: val.to(to_dev) for key, val in batch.items()}
-            inputs = [i.to(to_dev) for i in batch]
+            inputs = {key: val.to(to_dev) for key, val in batch.items()}
             with torch.no_grad():
                 logits = self.model(**inputs).logits
             probs = logits.softmax(dim=1)
