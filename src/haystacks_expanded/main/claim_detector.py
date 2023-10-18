@@ -60,6 +60,8 @@ class ClaimDetector:
             return self.tokenizer(examples["sentence"], padding="max_length", truncation=True, return_tensors='pt', max_length=128)
 
         tokenized_dataset = dataset.map(tokenize_function, batched=True)
+        # Convert the tokenized dataset to PyTorch tensors
+        tokenized_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
         # tokenized_sentences = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True, max_length=128)
         # input_ids = torch.tensor(tokenized_sentences['input_ids'])
         # attention_mask = torch.tensor(tokenized_sentences['attention_mask'])
