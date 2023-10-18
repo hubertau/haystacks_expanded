@@ -1,7 +1,7 @@
 from loguru import logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 import os
 import gc
 
@@ -44,7 +44,10 @@ class ClaimDetector:
 
     def __call__(self, sentences, batch_size=32):
         tokenized_sentences = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True, max_length=128)
-        dataloader = DataLoader(tokenized_sentences, batch_size=batch_size, shuffle=False)
+        input_ids = torch.tensor(tokenized_sentences['input_ids'])
+        attention_mask = torch.tensor(tokenized_sentences['attention_mask'])
+        dataset = TensorDataset(input_ids, attention_mask)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         if isinstance(self.device, dict):
             to_dev = 'cuda'
         else:
