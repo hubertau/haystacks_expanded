@@ -55,7 +55,8 @@ class ClaimDetector:
 
         results = []
         for batch in dataloader:
-            inputs = {key: val.to(to_dev) for key, val in batch.items()}
+            # inputs = {key: val.to(to_dev) for key, val in batch.items()}
+            inputs = [i.to(to_dev) for i in batch]
             with torch.no_grad():
                 logits = self.model(**inputs).logits
             probs = logits.softmax(dim=1)
