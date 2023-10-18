@@ -39,19 +39,19 @@ def cli(ctx, debug, gpu, config_file, log_file):
             logger.info('Creating a config file:')
             raw_data_loc = ''
             while not os.path.exists(raw_data_loc):
-                raw_data_loc = input("Where to store data files, both query json results and mp4 videos? ")
+                raw_data_loc = input("Where to store data files, both query json results and mp4 videos? Metadata json will be saved in this directory, and a videos/ subdirectory will be made to save .mp4 videos.\n")
             features_loc = ''
             while not os.path.exists(features_loc):
-                features_loc = input("Where to store features files, i.e. extracted features from raw data? ")
+                features_loc = input("Where to store features files, i.e. extracted features from raw data? These are files with transcribed audio and OCR-ed text.\n")
             processed_loc = ''
             while not os.path.exists(processed_loc):
-                processed_loc = input("Where to store processed files, i.e. claims deteced from features? ")
+                processed_loc = input("Where to store processed files, i.e. claims deteced from features?\n")
             token = None
             while not token:
-                token = input("What is your API token? ")
+                token = input("What is your API token?\n")
             queries_json = ''
             while not os.path.exists(queries_json):
-                queries_json = input("Where is your queries.json with query_name: query pairs? ")
+                queries_json = input("Where is your queries.json with query_name: query pairs?\n")
 
             raw_data_loc = os.path.abspath(raw_data_loc)
             features_loc = os.path.abspath(features_loc)
