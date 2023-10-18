@@ -1,7 +1,7 @@
 from loguru import logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, BitsAndBytesConfig
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 import os
 from pathlib import Path
 import gc
@@ -25,7 +25,7 @@ class ClaimDetector:
                     bnb_4bit_quant_type="nf4",
                     bnb_4bit_compute_dtype="float16",
                     bnb_4bit_use_double_quant=False,
-                ),**kwargs)
+                ),local_files_only=True, **kwargs)
             self.model.config.pad_token_id = 0
             self.tokenizer.pad_token_id = 0
             if os.path.isfile(f"{model_name}/score.original_module.pt"):
