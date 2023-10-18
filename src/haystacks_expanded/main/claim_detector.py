@@ -13,6 +13,7 @@ class ClaimDetector:
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
         if modeltype == 'LLM':
+            logger.debug(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, load_in_8bit=True, quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
