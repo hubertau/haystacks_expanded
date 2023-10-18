@@ -3,6 +3,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Bits
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import os
+from pathlib import Path
 import gc
 
 class ClaimDetector:
@@ -13,6 +14,7 @@ class ClaimDetector:
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
         if modeltype == 'LLM':
+            model_name = Path(model_name)
             logger.debug(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
