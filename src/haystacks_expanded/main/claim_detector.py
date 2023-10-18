@@ -14,12 +14,16 @@ class ClaimDetector:
             self.tokenizer = AutoTokenizer.from_pretrained(tok_name)
         if modeltype == 'LLM':
             logger.debug(model_name)
-            self.model = AutoModelForSequenceClassification.from_pretrained(model_name, device_map = device, load_in_8bit=True, quantization_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype="float16",
-                bnb_4bit_use_double_quant=False,
-            ),**kwargs)
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                device_map = device,
+                load_in_8bit=True,
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype="float16",
+                    bnb_4bit_use_double_quant=False,
+                ),**kwargs)
             self.model.config.pad_token_id = 0
             self.tokenizer.pad_token_id = 0
             if os.path.isfile(f"{model_name}/score.original_module.pt"):
