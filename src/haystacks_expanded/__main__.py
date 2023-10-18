@@ -272,7 +272,7 @@ def detect(ctx,
 
     batch_size = 16 
     dataset = Dataset.from_pandas(infile)
-    dataloader = DataLoader(dataset['sentence'], batch_size=batch_size, shuffle=False)
+    # dataloader = DataLoader(dataset['sentence'], batch_size=batch_size, shuffle=False)
 
     if (tokenizer is None or tokenizer == '') and 'checkpoint' in model:
         tokenizer = str(Path(model).parent)
@@ -287,10 +287,12 @@ def detect(ctx,
         device={'':0}
     )
     # claims = detector(infile['sentence'].to_list())
-    claims = []
-    for batch in dataloader:
-        batch_results = detector(batch)
-        claims.extend(batch_results)
+    # claims = []
+    # for batch in dataloader:
+        # batch_results = detector(batch)
+        # claims.extend(batch_results)
+
+    claims = detector(dataset['sentence'], batch_size, )
 
     # collect dataframe of results
     scores = pd.DataFrame.from_records([{score_item['label']:score_item['score'] for score_item in res} for res in claims])

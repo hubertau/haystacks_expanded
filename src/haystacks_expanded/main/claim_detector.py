@@ -1,7 +1,9 @@
 from loguru import logger
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
+from torch.utils.data import DataLoader
 import os
+import gc
 
 class ClaimDetector:
 
@@ -40,23 +42,27 @@ class ClaimDetector:
 
         logger.debug(self.model.config.label2id)
 
-    def __call__(self, sentences):
-        inputs = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True)
-        # logger.debug(type(inputs))
-        # logger.debug(inputs)
+    def __call__(self, sentences, batch_size=32):
+        tokenized_sentences = self.tokenizer(sentences, return_tensors="pt", padding=True, truncation=True, max_length=128)
+        dataloader = DataLoader(tokenized_sentences, batch_size=batch_size, shuffle=False)
         if isinstance(self.device, dict):
             to_dev = 'cuda'
         else:
             to_dev = self.device
-        inputs = {key: val.to(to_dev) for key, val in inputs.items()}
-        with torch.no_grad():
-            logits = self.model(**inputs).logits
-        probs = logits.softmax(dim=1)
 
         results = []
-        for prob in probs:
-            results.append([{'label': self.id2label[idx], 'score': score.item()} for idx, score in enumerate(prob)])
+        for batch in dataloader:
+            inputs = {key: val.to(to_dev) for key, val in batch.items()}
+            with torch.no_grad():
+                logits = self.model(**inputs).logits
+            probs = logits.softmax(dim=1)
 
+            for prob in probs:
+                results.append([{'label': self.id2label[idx], 'score': score.item()} for idx, score in enumerate(prob)])
+
+            del batch
+            gc.collect()
+            torch.cuda.empty_cache()
         return results
 
 if __name__ == "__main__":
