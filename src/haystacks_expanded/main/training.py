@@ -37,65 +37,6 @@ warnings.filterwarnings("ignore", message="Some weights of the model were not in
 
 from ..utils import get_save_path
 
-# # Defining a Dataset object to put our data in
-# class LlamaDataset(HF_Dataset):
-#     """
-#     Special dataset class built on top of the torch Dataset class
-#     useful to have memory efficient dataloading tokenization batching and trainning.
-
-#     Huggingface can use these types of dataset as inputs and run all trainning/prediction on them.
-#     """
-#     def __init__(self, input_data, targets, tokenizer, max_len):
-#         """
-#         Basic generator function for the class.
-#         -----------------
-#         input_data : array
-#             Numpy array of string  input text to use for downstream task
-#         targets :
-#             Numpy array of integers indexed in  the pytorch style of [0,C-1] with C being the total number of classes
-#             In our example this means the target sentiments should range from 0 to 2.
-#         tokenizer  : Huggingface tokenizer
-#             The huggingface tokenizer to use
-#         max_len :
-#             The truncation length of the tokenizer
-#         -------------------
-
-#         Returns :
-
-#             Tokenized text with inputs, attentions and labels, ready for the Training script.
-#         """
-#         self.input_data = input_data
-#         self.targets = targets
-#         self.tokenizer = tokenizer
-#         self.max_len = max_len
-
-#     def __len__(self):
-#         """
-#         Function required by torch huggingface to batch efficiently
-#         """
-#         return len(self.input_data)
-
-#     def __getitem__(self, item):
-#         text = str(self.input_data[item])
-#         target = self.targets[item]
-#         # only difference with the previuous tokenization step is the encode-plus for special tokens
-#         encoding = self.tokenizer.encode_plus(
-#           text,
-#           add_special_tokens=True,
-#           max_length=self.max_len,
-#           return_token_type_ids=False,
-#           padding='max_length',
-#           return_attention_mask=True,
-#           return_tensors='pt',
-#           truncation = True
-#         )
-#         return {
-#          # 'text': text,
-#           'input_ids': encoding['input_ids'].flatten(),
-#           'attention_mask': encoding['attention_mask'].flatten(),
-#           'labels': torch.tensor(target, dtype=torch.long)
-#         }
-
 class SaveScoreCallback(TrainerCallback):  
     def __init__(self, model) -> None:
         super().__init__()
